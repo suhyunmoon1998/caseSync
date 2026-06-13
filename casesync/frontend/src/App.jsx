@@ -344,7 +344,7 @@ export default function App() {
         <div className="connect-card">
           <img className="connect-icon logo-image" src={caseSyncLogo} alt="CaseSync logo" />
           <p className="eyebrow">Welcome to CaseSync</p>
-          <h1>Automatically track court deadlines from email.</h1>
+          <h1 className="landing-headline">Automatically track court deadlines from email.</h1>
           <p className="connect-copy">
             Connect Google once. CaseSync reads matching Gmail messages and writes case deadlines to Google Calendar.
           </p>

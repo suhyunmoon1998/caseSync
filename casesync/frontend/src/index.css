@@ -1620,3 +1620,61 @@ textarea,
   padding: 0;
   width: 42px;
 }
+
+/* Futuristic first-page treatment */
+.connect-screen {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(0, 113, 227, 0.18), transparent 30%),
+    radial-gradient(circle at 84% 18%, rgba(255, 196, 57, 0.18), transparent 24%),
+    linear-gradient(135deg, #f8fbff 0%, #eef4fb 44%, #ffffff 100%);
+}
+
+.connect-screen::before {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  z-index: -2;
+  background-image:
+    linear-gradient(rgba(0, 64, 128, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 64, 128, 0.08) 1px, transparent 1px),
+    radial-gradient(circle at 50% 42%, rgba(0, 113, 227, 0.20), transparent 28%);
+  background-size: 56px 56px, 56px 56px, 100% 100%;
+  transform: perspective(900px) rotateX(58deg) translateY(-10%);
+  transform-origin: center top;
+  opacity: 0.72;
+}
+
+.connect-screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(115deg, transparent 0 34%, rgba(255, 255, 255, 0.74) 35% 37%, transparent 38% 100%),
+    radial-gradient(ellipse at 50% 24%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.34) 36%, transparent 66%);
+  pointer-events: none;
+}
+
+.landing-headline {
+  max-width: 860px;
+  font-family: "Geist", "SF Pro Display", var(--font-sans);
+  font-size: clamp(44px, 7vw, 96px);
+  font-weight: 880;
+  line-height: 0.92;
+  letter-spacing: -0.082em;
+  text-wrap: balance;
+  background: linear-gradient(105deg, #07111f 0%, #123e72 38%, #b8871f 72%, #111827 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 22px 60px rgba(7, 17, 31, 0.12);
+}
+
+@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+  .landing-headline {
+    color: #07111f;
+  }
+}
