@@ -1,6 +1,9 @@
 import axios from 'axios';
 
+const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || 'https://casesync-backend.onrender.com';
+
 const client = axios.create({
+  baseURL: apiBaseUrl,
   withCredentials: true,
 });
 
@@ -15,7 +18,7 @@ export const removeAccount = async (email) => {
 };
 
 export const loginWithGoogle = () => {
-  window.location.href = '/auth/google';
+  window.location.href = `${apiBaseUrl}/auth/google`;
 };
 
 export const getTriggers = async () => {
