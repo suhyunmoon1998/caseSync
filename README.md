@@ -5,7 +5,7 @@ CaseSync is an intelligent email-to-calendar case tracking system for legal oper
 ## What It Does
 
 - Connects Google accounts with OAuth 2.0
-- Stores trigger rules and scan logs in `lowdb`
+- Stores trigger rules, scan logs, connected accounts, and processed email IDs in Postgres when `DATABASE_URL` is set, with local `lowdb` fallback for development
 - Scans Gmail with sender and keyword rules
 - Extracts case IDs, proof-of-service dates, response deadlines, and action items
 - Calculates Proof of Service response deadlines from the proof date: personal service 30 days, electronic service 32 days by default, and mail service 35 days
@@ -13,7 +13,7 @@ CaseSync is an intelligent email-to-calendar case tracking system for legal oper
 - Creates related Calendar reminders for the response deadline, 2-week tickler, 1-week tickler, and client-call follow-up
 - Adds discovery response skeletons, client questions, document requests, and verification explanation language to the case event description
 - Shows tracked cases, deadline calendars, scan logs, and sticky notifications in the React UI
-- Runs an hourly automatic scan with `node-cron`
+- Runs a daily automatic scan at 8:00 AM local server time with `node-cron`
 
 ## Project Structure
 
@@ -78,7 +78,24 @@ SESSION_SECRET=any_random_string
 PORT=3001
 SCAN_CALENDAR_ID=primary
 ANTHROPIC_API_KEY=
+DATABASE_URL=
+DATABASE_SSL=true
 ```
+
+## Supabase Postgres
+
+For production, create a Supabase project and set the backend `DATABASE_URL` to your Supabase Postgres connection string. CaseSync automatically creates the required tables on startup.
+
+Use the connection string only on the backend. Never expose it in frontend environment variables.
+
+Recommended backend environment:
+
+```text
+DATABASE_URL=postgresql://...
+DATABASE_SSL=true
+```
+
+Supabase documents connection strings and pooler options in their database connection guide: https://supabase.com/docs/guides/database/connecting-to-postgres
 
 If port `3000` is occupied during local testing, run the frontend on `3002` and set:
 
@@ -142,6 +159,6 @@ Open `http://localhost:3000`. If using the alternate local port, run `PORT=3002 
 ## Notes
 
 - Google Calendar is the case source of truth.
-- `lowdb` stores trigger rules, scan history, connected account tokens for cron, and processed email IDs.
+- Postgres stores trigger rules, scan history, connected account tokens for cron, and processed email IDs when `DATABASE_URL` is configured. Without `DATABASE_URL`, local `lowdb` JSON fallback is used.
 - Browser notifications require the user to allow notification permission in the browser.
 - Real Gmail and Calendar scans require valid Google OAuth credentials and a valid Anthropic API key.

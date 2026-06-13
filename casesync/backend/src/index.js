@@ -4,7 +4,7 @@ import cors from 'cors';
 import session from 'express-session';
 import cron from 'node-cron';
 
-import { initDb, setScanState, getScanState } from './lib/db.js';
+import { initDb, setScanState, getScanState, getStorageMode } from './lib/db.js';
 import { getNextScheduledRun, runAutoScan } from './lib/scanner.js';
 import authRouter from './routes/auth.js';
 import triggersRouter from './routes/triggers.js';
@@ -49,7 +49,7 @@ app.use('/api/cases', casesRouter);
 app.use('/api/calendar', calendarRouter);
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, app: 'casesync-backend' });
+  res.json({ ok: true, app: 'casesync-backend', storage: getStorageMode() });
 });
 
 app.get('/api/scan/status', async (_req, res) => {
