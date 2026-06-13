@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: casesync-backend
+    runtime: node
+    rootDir: casesync/backend
+    plan: free
+    autoDeploy: true
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_SSL
+        value: "true"
+      - key: SCAN_CALENDAR_ID
+        value: primary
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
