@@ -13,3 +13,4 @@ yarn-debug.log*
 yarn-error.log*
 casesync/backend/data/db.json
 backend/data/db.json
+.vercel
