@@ -790,7 +790,7 @@ export const createCaseFolder = async ({
     caseTitle: caseTitle || existing?.caseTitle || normalizedCaseId,
     caseColor: caseColor || existing?.caseColor || '',
     status: existing?.status || 'active',
-    triggerName: existing?.triggerName || 'Manual case folder',
+    triggerName: 'Manual case folder',
     summary: existing?.summary || 'Manual case folder. Related emails will appear here after scans.',
     description: existing?.description || '',
     lastUpdated: now,
