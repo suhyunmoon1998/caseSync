@@ -15,6 +15,7 @@ const defaultData = {
   scanLog: [],
   accounts: [],
   processedEmailIds: [],
+  cases: [],
   scanState: {
     isRunning: false,
     lastRun: null,
@@ -76,6 +77,31 @@ const normalizeTriggerRow = (row) => ({
   createdAt: row.created_at,
 });
 
+const normalizeCaseRow = (row) => ({
+  id: row.id,
+  caseId: row.case_id,
+  caseTitle: row.case_title || row.case_id,
+  status: row.status || 'active',
+  triggerId: row.trigger_id || null,
+  triggerName: row.trigger_name || null,
+  htmlLink: row.html_link || '',
+  summary: row.summary || '',
+  description: row.description || '',
+  lastUpdated: row.last_updated || row.updated_at,
+  caseConfidence: row.case_confidence === null || row.case_confidence === undefined ? null : Number(row.case_confidence),
+  isEstimated: Boolean(row.is_estimated),
+  deadlines: row.deadlines || [],
+  sourceCalendarId: row.source_calendar_id || 'primary',
+  sourceAccount: row.source_account || '',
+  sourceEventSummary: row.source_event_summary || '',
+  start: row.start_payload || null,
+  end: row.end_payload || null,
+  proofServiceDate: row.proof_service_date || '',
+  proofServiceMethod: row.proof_service_method || '',
+  responseDeadlineDate: row.response_deadline_date || '',
+  discoverySets: row.discovery_sets || [],
+});
+
 const normalizeAccountRow = (row, includeTokens = false) => {
   const account = {
     email: row.email,
@@ -108,6 +134,7 @@ const sanitizeData = (data) => ({
   scanLog: Array.isArray(data?.scanLog) ? data.scanLog : defaultData.scanLog,
   accounts: Array.isArray(data?.accounts) ? data.accounts : defaultData.accounts,
   processedEmailIds: Array.isArray(data?.processedEmailIds) ? data.processedEmailIds : defaultData.processedEmailIds,
+  cases: Array.isArray(data?.cases) ? data.cases : defaultData.cases,
   scanState: data?.scanState && typeof data.scanState === 'object'
     ? data.scanState
     : defaultData.scanState,
@@ -163,6 +190,33 @@ const initPostgresDb = async () => {
     create table if not exists processed_email_ids (
       message_id text primary key,
       created_at timestamptz not null default now()
+    )
+  `);
+  await pg.query(`
+    create table if not exists cases (
+      case_id text primary key,
+      event_id text,
+      case_title text,
+      status text not null default 'active',
+      trigger_id text,
+      trigger_name text,
+      html_link text,
+      summary text,
+      description text,
+      last_updated timestamptz,
+      case_confidence integer,
+      is_estimated boolean not null default false,
+      deadlines jsonb not null default '[]'::jsonb,
+      source_calendar_id text not null default 'primary',
+      source_account text,
+      source_event_summary text,
+      start_payload jsonb,
+      end_payload jsonb,
+      proof_service_date text,
+      proof_service_method text,
+      response_deadline_date text,
+      discovery_sets text[] not null default '{}',
+      updated_at timestamptz not null default now()
     )
   `);
   await pg.query(`
@@ -587,4 +641,157 @@ export const getLastScan = async () => {
 
   await db.read();
   return db.data.scanLog[0] || null;
+};
+
+
+export const upsertCaseRecord = async (record) => {
+  const payload = {
+    id: record.id || record.eventId || record.caseId,
+    caseId: record.caseId,
+    caseTitle: record.caseTitle || record.caseId,
+    status: record.status || 'active',
+    triggerId: record.triggerId || record.trigger?.id || null,
+    triggerName: record.triggerName || record.trigger?.name || null,
+    htmlLink: record.htmlLink || '',
+    summary: record.summary || '',
+    description: record.description || '',
+    lastUpdated: record.lastUpdated || new Date().toISOString(),
+    caseConfidence: Number.isFinite(Number(record.caseConfidence)) ? Number(record.caseConfidence) : null,
+    isEstimated: Boolean(record.isEstimated ?? record.estimated),
+    deadlines: Array.isArray(record.deadlines) ? record.deadlines : [],
+    sourceCalendarId: record.sourceCalendarId || record.calendarId || 'primary',
+    sourceAccount: record.sourceAccount || record.sourceEmail || '',
+    sourceEventSummary: record.sourceEventSummary || record.summary || '',
+    start: record.start || null,
+    end: record.end || null,
+    proofServiceDate: record.proofServiceDate || '',
+    proofServiceMethod: record.proofServiceMethod || '',
+    responseDeadlineDate: record.responseDeadlineDate || '',
+    discoverySets: Array.isArray(record.discoverySets) ? record.discoverySets : [],
+  };
+
+  if (!payload.caseId) {
+    return null;
+  }
+
+  if (storageMode === 'postgres') {
+    const { rows } = await getPool().query(
+      `insert into cases (
+        case_id, event_id, case_title, status, trigger_id, trigger_name, html_link, summary,
+        description, last_updated, case_confidence, is_estimated, deadlines, source_calendar_id,
+        source_account, source_event_summary, start_payload, end_payload, proof_service_date,
+        proof_service_method, response_deadline_date, discovery_sets, updated_at
+       ) values (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb, $14,
+        $15, $16, $17::jsonb, $18::jsonb, $19, $20, $21, $22, now()
+       )
+       on conflict (case_id) do update set
+        event_id = excluded.event_id,
+        case_title = excluded.case_title,
+        status = excluded.status,
+        trigger_id = excluded.trigger_id,
+        trigger_name = excluded.trigger_name,
+        html_link = excluded.html_link,
+        summary = excluded.summary,
+        description = excluded.description,
+        last_updated = excluded.last_updated,
+        case_confidence = excluded.case_confidence,
+        is_estimated = excluded.is_estimated,
+        deadlines = excluded.deadlines,
+        source_calendar_id = excluded.source_calendar_id,
+        source_account = excluded.source_account,
+        source_event_summary = excluded.source_event_summary,
+        start_payload = excluded.start_payload,
+        end_payload = excluded.end_payload,
+        proof_service_date = excluded.proof_service_date,
+        proof_service_method = excluded.proof_service_method,
+        response_deadline_date = excluded.response_deadline_date,
+        discovery_sets = excluded.discovery_sets,
+        updated_at = now()
+       returning *`,
+      [
+        payload.caseId,
+        payload.id,
+        payload.caseTitle,
+        payload.status,
+        payload.triggerId,
+        payload.triggerName,
+        payload.htmlLink,
+        payload.summary,
+        payload.description,
+        payload.lastUpdated,
+        payload.caseConfidence,
+        payload.isEstimated,
+        JSON.stringify(payload.deadlines),
+        payload.sourceCalendarId,
+        payload.sourceAccount,
+        payload.sourceEventSummary,
+        JSON.stringify(payload.start),
+        JSON.stringify(payload.end),
+        payload.proofServiceDate,
+        payload.proofServiceMethod,
+        payload.responseDeadlineDate,
+        payload.discoverySets,
+      ],
+    );
+    return normalizeCaseRow(rows[0]);
+  }
+
+  await db.read();
+  db.data = sanitizeData(db.data || {});
+  const index = db.data.cases.findIndex((item) => item.caseId === payload.caseId);
+  const next = { ...payload, updatedAt: new Date().toISOString() };
+  if (index === -1) {
+    db.data.cases.unshift(next);
+  } else {
+    db.data.cases[index] = { ...db.data.cases[index], ...next };
+  }
+  await write();
+  return next;
+};
+
+export const getCaseRecordsFromDb = async () => {
+  if (storageMode === 'postgres') {
+    const { rows } = await getPool().query('select * from cases order by updated_at desc');
+    return rows.map(normalizeCaseRow);
+  }
+
+  await db.read();
+  db.data = sanitizeData(db.data || {});
+  return db.data.cases.slice();
+};
+
+export const updateCaseRecordStatus = async (caseId, status) => {
+  if (storageMode === 'postgres') {
+    const { rows } = await getPool().query(
+      'update cases set status = $2, updated_at = now() where case_id = $1 returning *',
+      [caseId, status],
+    );
+    return rows[0] ? normalizeCaseRow(rows[0]) : null;
+  }
+
+  await db.read();
+  db.data = sanitizeData(db.data || {});
+  const index = db.data.cases.findIndex((item) => item.caseId === caseId);
+  if (index === -1) {
+    return null;
+  }
+  db.data.cases[index] = { ...db.data.cases[index], status, updatedAt: new Date().toISOString() };
+  await write();
+  return db.data.cases[index];
+};
+
+export const deleteCaseRecord = async (caseId) => {
+  if (storageMode === 'postgres') {
+    const result = await getPool().query('delete from cases where case_id = $1', [caseId]);
+    return result.rowCount > 0;
+  }
+
+  await db.read();
+  db.data = sanitizeData(db.data || {});
+  const next = db.data.cases.filter((item) => item.caseId !== caseId);
+  const deleted = next.length !== db.data.cases.length;
+  db.data.cases = next;
+  await write();
+  return deleted;
 };

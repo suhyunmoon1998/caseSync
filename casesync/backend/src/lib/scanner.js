@@ -8,6 +8,10 @@ import {
   isProcessedEmail,
   markEmailProcessed,
   upsertAccount,
+  upsertCaseRecord,
+  getCaseRecordsFromDb,
+  updateCaseRecordStatus,
+  deleteCaseRecord,
 } from './db.js';
 import { getAuthClient, fetchTriggerEmails } from './gmail.js';
 import { parseEmail } from './parser.js';
@@ -421,6 +425,18 @@ export const runAutoScan = async (triggerSource = 'auto') => {
             if (existing?.id) {
               const updated = await updateCaseEvent(auth, calendarId, existing.id, payload);
               await upsertRelatedCaseEvents(auth, calendarId, payload, updated);
+              await upsertCaseRecord({
+                ...payload,
+                id: updated.id,
+                htmlLink: updated.htmlLink || '',
+                description: updated.description || '',
+                lastUpdated: updated.extendedProperties?.private?.lastUpdated || updated.updated || new Date().toISOString(),
+                sourceAccount: account.email,
+                sourceCalendarId: calendarId,
+                sourceEventSummary: updated.summary || '',
+                start: updated.start || null,
+                end: updated.end || null,
+              });
               summary.casesUpdated += 1;
               const notification = buildScanNotification('updated_case', payload, updated);
               if (notification) {
@@ -429,6 +445,18 @@ export const runAutoScan = async (triggerSource = 'auto') => {
             } else {
               const created = await createCaseEvent(auth, calendarId, payload);
               await upsertRelatedCaseEvents(auth, calendarId, payload, created);
+              await upsertCaseRecord({
+                ...payload,
+                id: created.id,
+                htmlLink: created.htmlLink || '',
+                description: created.description || '',
+                lastUpdated: created.extendedProperties?.private?.lastUpdated || created.updated || new Date().toISOString(),
+                sourceAccount: account.email,
+                sourceCalendarId: calendarId,
+                sourceEventSummary: created.summary || '',
+                start: created.start || null,
+                end: created.end || null,
+              });
               summary.casesCreated += 1;
               const notification = buildScanNotification('new_case', payload, created);
               if (notification) {
@@ -507,98 +535,16 @@ const parseConfidence = (value) => {
   return Math.max(0, Math.min(100, Math.round(num)));
 };
 
-export const getCaseRecords = async (targetAccountEmail = null) => {
-  const triggers = await getTriggers();
-  const calendarIds = [...new Set((triggers || []).map((trigger) => trigger.calendarId || defaultCalendarId))];
-  const accounts = await getAllAccountsRaw();
-  const selectedAccounts = targetAccountEmail
-    ? accounts.filter((account) => account.email === targetAccountEmail)
-    : accounts;
-
-  const records = new Map();
-
-  for (const account of selectedAccounts) {
-    if (!account?.tokens) {
-      continue;
-    }
-
-    try {
-      const auth = getAuthClient(account.tokens, {
-        clientId: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        redirectUri: process.env.GOOGLE_REDIRECT_URI,
-      });
-
-      for (const calendarId of calendarIds) {
-        try {
-          const events = await listCaseEvents(auth, calendarId);
-          for (const event of events) {
-            const caseId = event.extendedProperties?.private?.caseId || '';
-            if (!isValidCaseId(caseId)) {
-              continue;
-            }
-
-            const deadlines = extractDeadlinesFromDescription(event.description || '');
-            const nextDeadline = deadlines
-              .slice()
-              .sort((a, b) => `${a.date}${a.time || ''}`.localeCompare(`${b.date}${b.time || ''}`))[0] || null;
-            const proofServiceDate = normalizeDate(event.extendedProperties?.private?.proofServiceDate) || '';
-            const proofServiceMethod = event.extendedProperties?.private?.proofServiceMethod || '';
-            const responseDeadlineDate = normalizeDate(event.extendedProperties?.private?.responseDeadlineDate)
-              || responseDeadlineFromService(proofServiceDate, proofServiceMethod);
-
-            const key = `${caseId}-${event.id}`;
-            if (!records.has(key)) {
-              records.set(key, {
-                id: event.id,
-                caseId,
-                caseTitle: (event.summary || '').replace(/^\[[^\]]+\]\s*/, ''),
-                status: event.extendedProperties?.private?.status || 'active',
-                triggerId: event.extendedProperties?.private?.triggerId || null,
-                triggerName: event.extendedProperties?.private?.triggerName || null,
-                htmlLink: event.htmlLink || '',
-                summary: event.summary || '',
-                description: event.description || '',
-                lastUpdated: event.extendedProperties?.private?.lastUpdated || event.updated,
-                caseConfidence: parseConfidence(event.extendedProperties?.private?.caseConfidence),
-                isEstimated: (event.extendedProperties?.private?.estimated || 'false') === 'true',
-                deadlines,
-                nextDeadline,
-                sourceCalendarId: calendarId,
-                sourceAccount: account.email,
-                sourceEventSummary: event.summary || '',
-                start: event.start,
-                end: event.end,
-                proofServiceDate,
-                proofServiceMethod,
-                responseDeadlineDate,
-                discoverySets: (event.extendedProperties?.private?.discoverySets || '')
-                  .split(',')
-                  .map((item) => item.trim())
-                  .filter(Boolean),
-              });
-            }
-          }
-        } catch (error) {
-          console.warn(`Skipping calendar ${calendarId} for ${account.email}: ${error.message || 'calendar read failed'}`);
-        }
-      }
-    } catch (error) {
-      console.warn(`Skipping account ${account.email}: ${error.message || 'account read failed'}`);
-    }
-  }
-
-  return [...records.values()].map(toDeadlineUi);
+export const getCaseRecords = async (_targetAccountEmail = null) => {
+  const stored = await getCaseRecordsFromDb();
+  return stored.map(toDeadlineUi);
 };
 
 export const updateCaseById = async (caseId, status) => {
-  const cases = await getCaseRecords();
-  const targets = cases.filter((item) => item.caseId === caseId);
-  if (targets.length === 0) {
+  const target = await updateCaseRecordStatus(caseId, status);
+  if (!target) {
     return null;
   }
-
-  const target = targets[0];
   const accounts = await getAllAccountsRaw();
   const account = accounts.find((entry) => entry.email === target.sourceAccount);
   if (!account?.tokens) {
@@ -611,7 +557,7 @@ export const updateCaseById = async (caseId, status) => {
     redirectUri: process.env.GOOGLE_REDIRECT_URI,
   });
 
-  await patchCaseStatus(auth, target.sourceCalendarId, target.id, status);
+  await patchCaseStatus(auth, target.sourceCalendarId, target.id, status).catch(() => undefined);
   return { success: true };
 };
 
@@ -619,7 +565,8 @@ export const deleteCaseById = async (caseId) => {
   const cases = await getCaseRecords();
   const targets = cases.filter((item) => item.caseId === caseId);
   if (targets.length === 0) {
-    return null;
+    const deletedOnlyFromDb = await deleteCaseRecord(caseId);
+    return deletedOnlyFromDb ? { success: true } : null;
   }
 
   const target = targets[0];
@@ -635,6 +582,7 @@ export const deleteCaseById = async (caseId) => {
     redirectUri: process.env.GOOGLE_REDIRECT_URI,
   });
 
-  await deleteCaseEvent(auth, target.sourceCalendarId, target.id);
+  await deleteCaseEvent(auth, target.sourceCalendarId, target.id).catch(() => undefined);
+  await deleteCaseRecord(caseId);
   return { success: true };
 };
