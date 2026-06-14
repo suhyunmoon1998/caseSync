@@ -61,6 +61,7 @@ export default function App() {
   const [caseNotifications, setCaseNotifications] = useState([]);
   const [notifPanelOpen, setNotifPanelOpen] = useState(false);
   const [toast, setToast] = useState('');
+  const [activeView, setActiveView] = useState('cases');
   const [isLoading, setIsLoading] = useState({ accounts: true, cases: false, logs: false, scan: false });
   const lastNotifiedScanRef = useRef('');
   const scanStatusInitializedRef = useRef(false);
@@ -286,51 +287,100 @@ export default function App() {
   };
 
   const main = useMemo(() => {
+    const navItems = [
+      {
+        key: 'cases',
+        label: 'Cases',
+        kicker: `${cases.length} tracked`,
+        title: 'Cases',
+        description: 'Review active response deadlines, confidence, status, and case details.',
+      },
+      {
+        key: 'dashboard',
+        label: 'Dashboard',
+        kicker: 'Overview',
+        title: 'Dashboard',
+        description: 'Scan status, deadline health, and recent activity at a glance.',
+      },
+      {
+        key: 'calendar',
+        label: 'Calendar',
+        kicker: 'Schedule',
+        title: 'Calendar',
+        description: 'Plan deadlines by range and right-click any date to add a schedule.',
+      },
+      {
+        key: 'triggers',
+        label: 'Triggers',
+        kicker: 'Automation',
+        title: 'Triggers',
+        description: 'Control the Gmail rules that detect discovery deadlines.',
+      },
+    ];
+    const current = navItems.find((item) => item.key === activeView) || navItems[0];
+
+    const view = {
+      cases: <Cases {...casesProps} />,
+      dashboard: <Dashboard {...dashboardProps} />,
+      calendar: <Calendar cases={cases} accounts={accounts} onManualCaseCreated={loadAll} />,
+      triggers: <Triggers accounts={accounts} onSaved={onTriggerSaved} />,
+    }[current.key];
+
     return (
-      <>
-        <section className="clean-section clean-section-hero">
-          <div>
-            <p className="eyebrow">Legal email automation</p>
-            <h1>CaseSync</h1>
-            <p className="hero-copy">
-              Connect every Gmail inbox you use. CaseSync watches each account, extracts deadlines, and keeps your Calendar organized.
-            </p>
+      <div className="canvas-workspace">
+        <aside className="canvas-sidebar" aria-label="CaseSync sections">
+          <div className="canvas-sidebar-title">
+            <span>Workspace</span>
+            <strong>CaseSync</strong>
           </div>
-          <div className="hero-actions">
+          <div className="canvas-nav">
+            {navItems.map((item) => (
+              <button
+                key={item.key}
+                className={`canvas-nav-item${item.key === current.key ? ' is-active' : ''}`}
+                type="button"
+                onClick={() => setActiveView(item.key)}
+              >
+                <span>{item.label}</span>
+                <small>{item.kicker}</small>
+              </button>
+            ))}
+          </div>
+          <div className="canvas-sidebar-footer">
             <div className="connected-pill">
               {accounts.length} Google {accounts.length === 1 ? 'account' : 'accounts'} connected
             </div>
-            <button className="btn-ghost" type="button" onClick={onConnect}>
-              Add account
-            </button>
             <button className="btn-primary" onClick={onRunScan} disabled={isLoading.scan}>
               {isLoading.scan ? <span className="spinner" /> : null}
               {isLoading.scan ? 'Scanning...' : 'Scan now'}
             </button>
           </div>
+        </aside>
+
+        <section className="canvas-stage">
+          <div className="canvas-stage-head">
+            <div>
+              <p className="eyebrow">Legal email automation</p>
+              <h1>{current.title}</h1>
+              <p className="hero-copy">{current.description}</p>
+            </div>
+            <div className="hero-actions">
+              <button className="btn-ghost" type="button" onClick={onConnect}>
+                Add Gmail
+              </button>
+              <button className="btn-primary" onClick={onRunScan} disabled={isLoading.scan}>
+                {isLoading.scan ? <span className="spinner" /> : null}
+                {isLoading.scan ? 'Scanning...' : 'Scan now'}
+              </button>
+            </div>
+          </div>
+          <div className="canvas-view">
+            {view}
+          </div>
         </section>
-
-        <div className="workspace-grid">
-          <section className="workspace-column workspace-column-main">
-            <Dashboard {...dashboardProps} />
-            <section className="clean-section">
-              <Triggers accounts={accounts} onSaved={onTriggerSaved} />
-            </section>
-          </section>
-
-          <section className="workspace-column workspace-column-side">
-            <section className="clean-section">
-              <Calendar cases={cases} accounts={accounts} onManualCaseCreated={loadAll} />
-            </section>
-
-            <section className="clean-section">
-              <Cases {...casesProps} />
-            </section>
-          </section>
-        </div>
-      </>
+      </div>
     );
-  }, [cases, scanLogs, scanStatus, accounts, isLoading.scan, casesProps]);
+  }, [activeView, cases, scanLogs, scanStatus, accounts, isLoading.scan, casesProps]);
 
   const pendingNotifications = caseNotifications.filter((item) => item.status !== 'dismissed').length;
   const recentNotifications = caseNotifications.slice(0, 20);
