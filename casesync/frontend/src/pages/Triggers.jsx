@@ -192,13 +192,49 @@ export default function Triggers({ accounts, onSaved }) {
     startEdit(trigger);
   };
 
+  const applyDiscoveryPreset = () => {
+    setEditing(null);
+    setName('Discovery proof of service');
+    setSenderEmails([]);
+    setKeywords([
+      'proof of service',
+      'served',
+      'discovery',
+      'interrogatories',
+      'requests for production',
+      'requests for admission',
+      'E-rogs',
+      'G-rogs',
+      'RFP',
+      'RFA',
+    ]);
+    setCaseIdPatterns([
+      '(?:Case\\s*(?:No\\.?|Number)|Docket\\s*(?:No\\.?|Number))[:#\\s-]*([A-Z0-9-]+)',
+      '\\b\\d{2}[A-Z]{2,4}\\d{4,}\\b',
+    ]);
+    setCalendarId('primary');
+    setCalendarEmail(accountOptions[0] || '');
+    setEnabled(true);
+    setSenderDraft('');
+    setKeywordDraft('');
+    setPatternDraft('');
+  };
+
   return (
     <div>
       <div className="topbar">
-        <h2>Triggers</h2>
-        <button className="btn-primary" onClick={() => {
-          resetForm();
-        }}>New rule</button>
+        <div>
+          <h2>Triggers</h2>
+          <p className="meta">Rules decide which Gmail messages CaseSync scans for proof dates, discovery sets, and response deadlines.</p>
+        </div>
+        <div className="trigger-top-actions">
+          <button className="btn-ghost" type="button" onClick={applyDiscoveryPreset}>
+            Use discovery preset
+          </button>
+          <button className="btn-primary" onClick={() => {
+            resetForm();
+          }}>New rule</button>
+        </div>
       </div>
 
       {error ? <div className="toast">{error}</div> : null}
@@ -206,6 +242,13 @@ export default function Triggers({ accounts, onSaved }) {
       <div className="layout-grid two-col trigger-editor-grid">
         <div className="card">
           <h3>{editing ? 'Edit trigger' : 'New trigger'}</h3>
+          <div className="trigger-helper">
+            <strong>Recommended first rule</strong>
+            <p className="meta">Use the discovery preset, create the trigger, then click Scan now. CaseSync will calculate response deadlines from Proof of Service dates and add Calendar reminders.</p>
+            <button className="btn-ghost" type="button" onClick={applyDiscoveryPreset}>
+              Fill recommended discovery trigger
+            </button>
+          </div>
           <label className="meta" htmlFor="trigger-name">Name</label>
           <input
             id="trigger-name"

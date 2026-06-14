@@ -1901,3 +1901,40 @@ textarea,
     padding-right: 12px;
   }
 }
+
+/* Trigger setup guidance */
+.trigger-top-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.trigger-helper {
+  background:
+    linear-gradient(135deg, rgba(0, 113, 227, 0.10), rgba(255, 255, 255, 0.76)),
+    radial-gradient(circle at 90% 0%, rgba(255, 190, 48, 0.18), transparent 34%);
+  border: 1px solid rgba(0, 113, 227, 0.14);
+  border-radius: 18px;
+  display: grid;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 16px;
+}
+
+.trigger-helper strong {
+  font-size: 15px;
+}
+
+.trigger-helper .btn-ghost {
+  justify-self: start;
+}
+
+@media (max-width: 720px) {
+  .trigger-top-actions {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+  }
+}
