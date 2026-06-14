@@ -1166,6 +1166,21 @@ select:focus {
   gap: 6px;
 }
 
+.trigger-pattern-summary {
+  align-items: center;
+  background: rgba(0, 113, 227, 0.08);
+  border: 1px solid rgba(0, 113, 227, 0.13);
+  border-radius: 999px;
+  color: #1259a7;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 680;
+  justify-self: start;
+  margin-top: 8px;
+  max-width: 100%;
+  padding: 7px 11px;
+}
+
 .icon-button {
   align-items: center;
   display: inline-flex;

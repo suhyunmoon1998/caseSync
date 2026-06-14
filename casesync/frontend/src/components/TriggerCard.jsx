@@ -3,6 +3,7 @@ import { Pencil, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 export default function TriggerCard({ trigger, onToggle, onEdit, onDelete }) {
   const senderCount = (trigger.senderEmails || []).length;
   const keywordCount = (trigger.keywords || []).length;
+  const patternCount = (trigger.caseIdPatterns || []).length;
   const isEnabled = trigger.enabled !== false;
 
   return (
@@ -50,11 +51,13 @@ export default function TriggerCard({ trigger, onToggle, onEdit, onDelete }) {
       <div className="tag-row trigger-tag-row">
         {(trigger.keywords || []).map((item) => <span className="tag" key={`keyword-${item}`}>{item}</span>)}
       </div>
-      <div className="tag-row trigger-tag-row">
-        {(trigger.caseIdPatterns || []).map((item) => <span className="tag" key={`pattern-${item}`}>{item}</span>)}
-      </div>
+      {patternCount > 0 ? (
+        <div className="trigger-pattern-summary">
+          Case ID detection enabled · {patternCount} {patternCount === 1 ? 'rule' : 'rules'}
+        </div>
+      ) : null}
       <div className="meta trigger-card-meta">
-        Matched: sender({senderCount}) / keyword({keywordCount})
+        Matched: sender({senderCount}) / keyword({keywordCount}) / case ID rules({patternCount})
       </div>
     </div>
   );
