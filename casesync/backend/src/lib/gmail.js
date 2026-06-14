@@ -94,6 +94,7 @@ const escapeQueryTerm = (value = '') => {
 };
 
 const buildQuery = (trigger) => {
+  const lookback = process.env.GMAIL_LOOKBACK || '6m';
   const fromPart = Array.isArray(trigger.senderEmails) && trigger.senderEmails.length
     ? `from:(${trigger.senderEmails.map((item) => `"${escapeQueryTerm(item)}"`).join(' OR ')})`
     : '';
@@ -102,8 +103,8 @@ const buildQuery = (trigger) => {
     ? `(${trigger.keywords.map((item) => `"${escapeQueryTerm(item)}"`).join(' OR ')})`
     : '';
 
-  const recent = 'newer_than:7d';
-  const constraints = ['(is:unread OR newer_than:7d)'];
+  const recent = `newer_than:${lookback}`;
+  const constraints = [recent];
 
   if (fromPart) {
     constraints.push(fromPart);
@@ -112,7 +113,7 @@ const buildQuery = (trigger) => {
     constraints.push(keywordPart);
   }
 
-  return `${constraints.join(' ')} ${recent}`.trim();
+  return constraints.join(' ').trim();
 };
 
 export const fetchTriggerEmails = async (auth, trigger, maxResults = 50) => {

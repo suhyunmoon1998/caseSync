@@ -27,6 +27,7 @@ import {
 } from './calendar.js';
 
 const defaultCalendarId = process.env.SCAN_CALENDAR_ID || 'primary';
+const scanMaxEmails = Number(process.env.SCAN_MAX_EMAILS || 500);
 
 const runningState = {
   running: false,
@@ -353,7 +354,7 @@ export const runAutoScan = async (triggerSource = 'auto') => {
 
       for (const trigger of enabledTriggers) {
         const calendarId = trigger.calendarId || defaultCalendarId;
-        const emails = await fetchTriggerEmails(auth, trigger, 50);
+        const emails = await fetchTriggerEmails(auth, trigger, scanMaxEmails);
 
         for (const email of emails) {
           summary.emailsScanned += 1;
