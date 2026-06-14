@@ -50,9 +50,6 @@ export default function NotificationManager({
       });
       note.onclick = () => {
         window.focus();
-        if (item.calendarEventUrl) {
-          window.open(item.calendarEventUrl, '_blank', 'noopener,noreferrer');
-        }
       };
     }
   }, [permission, visible]);
@@ -87,7 +84,7 @@ export default function NotificationManager({
             <div className="notif-toast-actions">
               <button className="btn-primary" type="button" onClick={() => onConfirm(item)}>
                 <ActionIcon type={item.type} />
-                {updated ? 'Open Calendar' : 'Confirm'}
+                {updated ? 'Add to CaseSync Calendar' : 'Add to CaseSync Calendar'}
               </button>
               <button className="btn-ghost" type="button" onClick={() => onDismiss(item.id)}>
                 <X size={14} />

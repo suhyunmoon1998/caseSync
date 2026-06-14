@@ -107,12 +107,10 @@ export default function App() {
 
   const confirmNotification = async (item) => {
     try {
-      const result = await confirmCase(item.caseId);
+      await confirmCase(item.caseId);
       dismissNotification(item.id);
-      const url = result.calendarEventUrl || item.calendarEventUrl;
-      if (url) {
-        window.open(url, '_blank', 'noopener,noreferrer');
-      }
+      await loadCases();
+      setToast('Added to CaseSync Calendar.');
     } catch (error) {
       setToast(toastForError(error));
     }
