@@ -312,19 +312,24 @@ export default function App() {
           </div>
         </section>
 
-        <Dashboard {...dashboardProps} />
+        <div className="workspace-grid">
+          <section className="workspace-column workspace-column-main">
+            <Dashboard {...dashboardProps} />
+            <section className="clean-section">
+              <Triggers accounts={accounts} onSaved={onTriggerSaved} />
+            </section>
+          </section>
 
-        <section className="clean-section">
-          <Triggers accounts={accounts} onSaved={onTriggerSaved} />
-        </section>
+          <section className="workspace-column workspace-column-side">
+            <section className="clean-section">
+              <Calendar cases={cases} accounts={accounts} onManualCaseCreated={loadAll} />
+            </section>
 
-        <section className="clean-section">
-          <Calendar cases={cases} accounts={accounts} onManualCaseCreated={loadAll} />
-        </section>
-
-        <section className="clean-section">
-          <Cases {...casesProps} />
-        </section>
+            <section className="clean-section">
+              <Cases {...casesProps} />
+            </section>
+          </section>
+        </div>
       </>
     );
   }, [cases, scanLogs, scanStatus, accounts, isLoading.scan, casesProps]);

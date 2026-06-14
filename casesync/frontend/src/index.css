@@ -2297,3 +2297,66 @@ textarea,
   border-color: rgba(52, 199, 89, 0.5);
   box-shadow: 0 16px 38px rgba(52, 199, 89, 0.14);
 }
+
+/* Column/row workspace: less scrolling, more at-a-glance scanning. */
+.workspace-grid {
+  align-items: start;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(460px, 0.9fr) minmax(620px, 1.25fr);
+}
+
+.workspace-column {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.workspace-grid .page-enter,
+.workspace-grid .clean-section {
+  margin-bottom: 0;
+}
+
+.workspace-column-main {
+  position: sticky;
+  top: 98px;
+}
+
+.workspace-column-main .stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.workspace-column-main .layout-grid.two-col {
+  grid-template-columns: 1fr;
+}
+
+.workspace-column-main .trigger-editor-grid {
+  grid-template-columns: 1fr;
+}
+
+.workspace-column-side .app-shell-clean .stats,
+.workspace-column-side .stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.workspace-column-side .layout-grid.two-col:has(.calendar-months) {
+  grid-template-columns: 1fr;
+}
+
+.workspace-column-side .calendar-months {
+  max-height: 660px;
+}
+
+.workspace-column-side .cases-grid {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+@media (max-width: 1320px) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-column-main {
+    position: static;
+  }
+}
