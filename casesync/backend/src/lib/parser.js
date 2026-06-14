@@ -225,6 +225,7 @@ const regexFromPattern = (pattern) => {
 
 const DEFAULT_CASE_ID_PATTERNS = [
   String.raw`(?:case\s*(?:no\.?|number|#)|docket\s*(?:no\.?|number|#))[:#\s-]*([A-Z0-9][A-Z0-9-]{4,})`,
+  String.raw`\b(\d{7,12})\b`,
   String.raw`\b(\d{2}[A-Z]{2,5}\d{4,})\b`,
   String.raw`\b([A-Z]{2,5}-\d{4,}-[A-Z0-9-]+)\b`,
   String.raw`\b([A-Z]{2,5}\d{6,})\b`,
