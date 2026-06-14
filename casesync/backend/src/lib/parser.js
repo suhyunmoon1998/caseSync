@@ -230,6 +230,23 @@ const DEFAULT_CASE_ID_PATTERNS = [
   String.raw`\b([A-Z]{2,5}\d{6,})\b`,
 ];
 
+const normalizeCaseIdCandidate = (value) => {
+  const candidate = String(value || '').trim().replace(/[.,;:)]+$/g, '');
+  if (candidate.length < 5) {
+    return null;
+  }
+  if (!/[0-9]/.test(candidate)) {
+    return null;
+  }
+  if (!/[A-Za-z]/.test(candidate) && candidate.length < 7) {
+    return null;
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9-]*$/.test(candidate)) {
+    return null;
+  }
+  return candidate;
+};
+
 const extractWithRegex = ({ body, subject, from, caseIdPatterns = [] }) => {
   const text = `${subject}\n${from}\n${body}`;
   const patterns = [...caseIdPatterns, ...DEFAULT_CASE_ID_PATTERNS];
@@ -245,14 +262,14 @@ const extractWithRegex = ({ body, subject, from, caseIdPatterns = [] }) => {
     }
 
     if (match[1]) {
-      const value = String(match[1]).trim();
+      const value = normalizeCaseIdCandidate(match[1]);
       if (value) {
         return value;
       }
     }
 
     if (match[0]) {
-      const value = String(match[0]).trim();
+      const value = normalizeCaseIdCandidate(match[0]);
       if (value) {
         return value;
       }
@@ -324,7 +341,7 @@ const isRuleBasedDiscoveryReady = ({ caseId, proofServiceDate, discoverySets, fu
 };
 
 const extractCaseIdConfidence = (matchValue) => {
-  if (!matchValue) {
+  if (!normalizeCaseIdCandidate(matchValue)) {
     return 45;
   }
   return 86;
@@ -441,7 +458,7 @@ export const parseEmail = async ({ subject = '', body = '', from = '', date = ''
 
     const parsed = parseJson(response?.content?.[0]?.text || '{}');
     if (parsed) {
-      const caseId = typeof parsed.caseId === 'string' && parsed.caseId.trim() ? parsed.caseId.trim() : hintCaseId;
+      const caseId = normalizeCaseIdCandidate(parsed.caseId) || hintCaseId;
       const caseConfidence = parseIntSafe(parsed.caseConfidence) ?? (caseId ? extractCaseIdConfidence(caseId) : data.caseConfidence);
 
       data = {
@@ -466,12 +483,10 @@ export const parseEmail = async ({ subject = '', body = '', from = '', date = ''
       };
     }
   } catch (error) {
-    data.caseId = hintCaseId || data.caseId;
+    data.caseId = hintCaseId || normalizeCaseIdCandidate(data.caseId);
   }
 
-  if (!data.caseId) {
-    data.caseId = null;
-  }
+  data.caseId = normalizeCaseIdCandidate(data.caseId);
 
   if (!Number.isFinite(data.caseConfidence)) {
     data.caseConfidence = data.caseId ? extractCaseIdConfidence(data.caseId) : 50;

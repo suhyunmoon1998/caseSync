@@ -176,8 +176,13 @@ const buildDescription = (caseId, caseTitle, summary, deadlines, sourceName, sou
 
 export const extractDeadlinesFromDescription = (description = '') => {
   const lines = String(description).split('\n');
+  const deadlineStart = lines.findIndex((line) => line.trim() === 'DEADLINES:');
+  const packageStart = lines.findIndex((line) => line.trim() === 'RESPONSE DEADLINE PACKAGE:');
+  const scopedLines = deadlineStart >= 0
+    ? lines.slice(deadlineStart + 1, packageStart >= 0 ? packageStart : undefined)
+    : lines;
 
-  return lines
+  return scopedLines
     .map((line) => line.trim())
     .filter((line) => line.startsWith('•'))
     .map((line) => {
@@ -250,7 +255,7 @@ export const createCaseEvent = async (auth, calendarId, eventData) => {
   } = eventData;
 
   const calendar = google.calendar({ version: 'v3', auth });
-  const sortedDeadlines = deadlines.slice().sort((a, b) => `${a.date}${a.time || ''}`.localeCompare(`${b.date}${b.time || ''}`));
+  const sortedDeadlines = dedupeDeadlines([], deadlines);
   const first = sortedDeadlines[0] || { date: new Date().toISOString().slice(0, 10), time: null };
   const { start, end } = toEventTimeRange(first.date, first.time);
 
