@@ -29,7 +29,7 @@ import {
 } from './calendar.js';
 
 const defaultCalendarId = process.env.SCAN_CALENDAR_ID || 'primary';
-const scanMaxEmails = Number(process.env.SCAN_MAX_EMAILS || 500);
+const scanMaxEmails = Number(process.env.SCAN_MAX_EMAILS || 1000);
 
 const runningState = {
   running: false,

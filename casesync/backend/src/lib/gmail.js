@@ -93,8 +93,16 @@ const escapeQueryTerm = (value = '') => {
   return String(value).replace(/[\"']/g, '\\$&');
 };
 
+const normalizeLookback = (value) => {
+  const candidate = String(value || '').trim().toLowerCase();
+  if (!candidate || candidate === '6m') {
+    return '1y';
+  }
+  return /^\d+[dmy]$/.test(candidate) ? candidate : '1y';
+};
+
 const buildQuery = (trigger) => {
-  const lookback = process.env.GMAIL_LOOKBACK || '6m';
+  const lookback = normalizeLookback(process.env.GMAIL_LOOKBACK);
   const fromPart = Array.isArray(trigger.senderEmails) && trigger.senderEmails.length
     ? `from:(${trigger.senderEmails.map((item) => `"${escapeQueryTerm(item)}"`).join(' OR ')})`
     : '';
@@ -119,14 +127,23 @@ const buildQuery = (trigger) => {
 export const fetchTriggerEmails = async (auth, trigger, maxResults = 50) => {
   const gmail = google.gmail({ version: 'v1', auth });
   const query = buildQuery(trigger);
+  const totalLimit = Math.max(1, Number(maxResults) || 50);
+  const items = [];
+  let pageToken = undefined;
 
-  const { data } = await gmail.users.messages.list({
-    userId: 'me',
-    q: query,
-    maxResults,
-  });
+  do {
+    const remaining = totalLimit - items.length;
+    const { data } = await gmail.users.messages.list({
+      userId: 'me',
+      q: query,
+      maxResults: Math.min(500, remaining),
+      pageToken,
+    });
 
-  const items = data.messages || [];
+    items.push(...(data.messages || []));
+    pageToken = data.nextPageToken;
+  } while (pageToken && items.length < totalLimit);
+
   const resolved = [];
 
   for (const item of items) {

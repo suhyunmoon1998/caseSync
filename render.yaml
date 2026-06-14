@@ -16,9 +16,9 @@ services:
       - key: SCAN_CALENDAR_ID
         value: primary
       - key: GMAIL_LOOKBACK
-        value: 6m
+        value: 1y
       - key: SCAN_MAX_EMAILS
-        value: "500"
+        value: "1000"
       - key: DATABASE_URL
         sync: false
       - key: SESSION_SECRET
