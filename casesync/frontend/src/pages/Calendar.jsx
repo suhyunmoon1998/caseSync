@@ -98,22 +98,14 @@ export default function Calendar({ cases = [], accounts = [], onManualCaseCreate
 
   const openQuickAdd = (event, dateKey) => {
     event.preventDefault();
-    const rect = event.currentTarget.getBoundingClientRect();
-    const width = 320;
-    const height = 360;
-    const preferredX = rect.right + 10;
-    const fallbackX = rect.left - width - 10;
-    const x = preferredX + width <= window.innerWidth - 12
-      ? preferredX
-      : Math.max(12, fallbackX);
-    const y = Math.max(12, Math.min(rect.top, window.innerHeight - height - 12));
+    event.stopPropagation();
     setManualStatus('');
     setManualForm((prev) => ({
       ...prev,
       proofServiceDate: dateKey,
       accountEmail: prev.accountEmail || accountOptions[0] || '',
     }));
-    setQuickAdd({ date: dateKey, x, y });
+    setQuickAdd({ date: dateKey });
   };
 
   const closeQuickAdd = () => {
@@ -250,80 +242,6 @@ export default function Calendar({ cases = [], accounts = [], onManualCaseCreate
         </div>
       </div>
 
-      {quickAdd ? (
-        <div className="quick-add-popover" style={{ left: quickAdd.x, top: quickAdd.y }}>
-          <div className="quick-add-head">
-            <div>
-              <strong>Add schedule</strong>
-              <span className="meta">Proof served on {quickAdd.date}</span>
-            </div>
-            <button className="btn-icon" type="button" onClick={closeQuickAdd}>x</button>
-          </div>
-          <div className="quick-add-grid">
-            {accountOptions.length > 0 ? (
-              <label className="manual-field">
-                <span className="meta">Google account</span>
-                <select
-                  className="input"
-                  value={manualForm.accountEmail || accountOptions[0] || ''}
-                  onChange={(event) => updateManualForm('accountEmail', event.target.value)}
-                >
-                  {accountOptions.map((email) => (
-                    <option key={email} value={email}>{email}</option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-            <label className="manual-field">
-              <span className="meta">Case ID</span>
-              <input
-                className="input"
-                value={manualForm.caseId}
-                onChange={(event) => updateManualForm('caseId', event.target.value)}
-                placeholder="24STCV12345"
-                autoFocus
-              />
-            </label>
-            <label className="manual-field">
-              <span className="meta">Case title</span>
-              <input
-                className="input"
-                value={manualForm.caseTitle}
-                onChange={(event) => updateManualForm('caseTitle', event.target.value)}
-                placeholder="Optional"
-              />
-            </label>
-            <label className="manual-field">
-              <span className="meta">Service method</span>
-              <select
-                className="input"
-                value={manualForm.proofServiceMethod}
-                onChange={(event) => updateManualForm('proofServiceMethod', event.target.value)}
-              >
-                <option value="electronic">Electronic (+32 days)</option>
-                <option value="personal">Personal (+30 days)</option>
-                <option value="mail">Mail (+35 days)</option>
-              </select>
-            </label>
-            <label className="manual-field">
-              <span className="meta">Discovery sets</span>
-              <input
-                className="input"
-                value={manualForm.discoverySets}
-                onChange={(event) => updateManualForm('discoverySets', event.target.value)}
-                placeholder="E-rogs, G-rogs, RFPs, RFAs"
-              />
-            </label>
-          </div>
-          <div className="manual-calendar-actions">
-            <button className="btn-primary" type="button" onClick={submitManualCase} disabled={manualLoading}>
-              {manualLoading ? 'Adding...' : 'Add to Google Calendar'}
-            </button>
-            {manualStatus ? <span className="meta">{manualStatus}</span> : null}
-          </div>
-        </div>
-      ) : null}
-
       <div className="stats">
         <div className="stat">
           <div className="n">{counts.total}</div>
@@ -403,6 +321,56 @@ export default function Calendar({ cases = [], accounts = [], onManualCaseCreate
                             {dayItems.length > 2 ? (
                               <span className="calendar-more">+{dayItems.length - 2}</span>
                             ) : null}
+                          </div>
+                        ) : null}
+                        {quickAdd?.date === key ? (
+                          <div className="quick-add-popover" onClick={(event) => event.stopPropagation()} onContextMenu={(event) => event.preventDefault()}>
+                            <div className="quick-add-head">
+                              <div>
+                                <strong>Add schedule</strong>
+                                <span className="meta">Proof served on {quickAdd.date}</span>
+                              </div>
+                              <button className="btn-icon" type="button" onClick={closeQuickAdd}>x</button>
+                            </div>
+                            <div className="quick-add-grid">
+                              <label className="manual-field">
+                                <span className="meta">Case ID</span>
+                                <input
+                                  className="input"
+                                  value={manualForm.caseId}
+                                  onChange={(event) => updateManualForm('caseId', event.target.value)}
+                                  placeholder="24STCV12345"
+                                  autoFocus
+                                />
+                              </label>
+                              <label className="manual-field">
+                                <span className="meta">Service method</span>
+                                <select
+                                  className="input"
+                                  value={manualForm.proofServiceMethod}
+                                  onChange={(event) => updateManualForm('proofServiceMethod', event.target.value)}
+                                >
+                                  <option value="electronic">Electronic (+32 days)</option>
+                                  <option value="personal">Personal (+30 days)</option>
+                                  <option value="mail">Mail (+35 days)</option>
+                                </select>
+                              </label>
+                              <label className="manual-field">
+                                <span className="meta">Discovery sets</span>
+                                <input
+                                  className="input"
+                                  value={manualForm.discoverySets}
+                                  onChange={(event) => updateManualForm('discoverySets', event.target.value)}
+                                  placeholder="RFPs, RFAs"
+                                />
+                              </label>
+                            </div>
+                            <div className="manual-calendar-actions">
+                              <button className="btn-primary" type="button" onClick={submitManualCase} disabled={manualLoading}>
+                                {manualLoading ? 'Adding...' : 'Add'}
+                              </button>
+                              {manualStatus ? <span className="meta">{manualStatus}</span> : null}
+                            </div>
                           </div>
                         ) : null}
                       </div>
