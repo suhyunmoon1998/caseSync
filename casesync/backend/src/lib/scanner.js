@@ -849,7 +849,8 @@ export const deleteCaseById = async (caseId) => {
   const accounts = await getAllAccountsRaw();
   const account = accounts.find((entry) => entry.email === target.sourceAccount);
   if (!account?.tokens) {
-    throw new Error('Account not found');
+    const deletedOnlyFromDb = await deleteCaseRecord(caseId);
+    return deletedOnlyFromDb ? { success: true } : null;
   }
 
   const auth = getAuthClient(account.tokens, {
