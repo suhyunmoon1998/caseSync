@@ -535,6 +535,80 @@ const parseConfidence = (value) => {
   return Math.max(0, Math.min(100, Math.round(num)));
 };
 
+export const importCalendarCasesToDb = async () => {
+  const triggers = await getTriggers();
+  const calendarIds = [...new Set((triggers || []).map((trigger) => trigger.calendarId || defaultCalendarId))];
+  const accounts = await getAllAccountsRaw();
+  let imported = 0;
+
+  for (const account of accounts) {
+    if (!account?.tokens) {
+      continue;
+    }
+
+    try {
+      const auth = getAuthClient(account.tokens, {
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        redirectUri: process.env.GOOGLE_REDIRECT_URI,
+      });
+
+      for (const calendarId of calendarIds) {
+        try {
+          const events = await listCaseEvents(auth, calendarId);
+          for (const event of events) {
+            const caseId = event.extendedProperties?.private?.caseId || '';
+            if (!isValidCaseId(caseId)) {
+              continue;
+            }
+
+            const deadlines = extractDeadlinesFromDescription(event.description || '');
+            const proofServiceDate = normalizeDate(event.extendedProperties?.private?.proofServiceDate) || '';
+            const proofServiceMethod = event.extendedProperties?.private?.proofServiceMethod || '';
+            const responseDeadlineDate = normalizeDate(event.extendedProperties?.private?.responseDeadlineDate)
+              || responseDeadlineFromService(proofServiceDate, proofServiceMethod);
+
+            await upsertCaseRecord({
+              id: event.id,
+              caseId,
+              caseTitle: (event.summary || '').replace(/^\[[^\]]+\]\s*/, ''),
+              status: event.extendedProperties?.private?.status || 'active',
+              triggerId: event.extendedProperties?.private?.triggerId || null,
+              triggerName: event.extendedProperties?.private?.triggerName || null,
+              htmlLink: event.htmlLink || '',
+              summary: event.summary || '',
+              description: event.description || '',
+              lastUpdated: event.extendedProperties?.private?.lastUpdated || event.updated || new Date().toISOString(),
+              caseConfidence: parseConfidence(event.extendedProperties?.private?.caseConfidence),
+              isEstimated: (event.extendedProperties?.private?.estimated || 'false') === 'true',
+              deadlines,
+              sourceCalendarId: calendarId,
+              sourceAccount: account.email,
+              sourceEventSummary: event.summary || '',
+              start: event.start || null,
+              end: event.end || null,
+              proofServiceDate,
+              proofServiceMethod,
+              responseDeadlineDate,
+              discoverySets: (event.extendedProperties?.private?.discoverySets || '')
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean),
+            });
+            imported += 1;
+          }
+        } catch (error) {
+          console.warn(`Skipping calendar import ${calendarId} for ${account.email}: ${error.message || 'calendar read failed'}`);
+        }
+      }
+    } catch (error) {
+      console.warn(`Skipping account import ${account.email}: ${error.message || 'account read failed'}`);
+    }
+  }
+
+  return { imported };
+};
+
 export const getCaseRecords = async (_targetAccountEmail = null) => {
   const stored = await getCaseRecordsFromDb();
   return stored.map(toDeadlineUi);

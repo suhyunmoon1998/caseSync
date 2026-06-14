@@ -3,6 +3,7 @@ import {
   getCaseRecords,
   updateCaseById,
   deleteCaseById,
+  importCalendarCasesToDb,
 } from '../lib/scanner.js';
 
 const router = express.Router();
@@ -14,6 +15,16 @@ router.get('/', async (_req, res) => {
   } catch (error) {
     console.error('Get cases failed', error);
     res.status(500).json({ error: 'Failed to load cases' });
+  }
+});
+
+router.post('/import-calendar', async (_req, res) => {
+  try {
+    const result = await importCalendarCasesToDb();
+    res.json({ success: true, ...result });
+  } catch (error) {
+    console.error('Import calendar cases failed', error);
+    res.status(500).json({ error: 'Failed to import calendar cases' });
   }
 });
 
