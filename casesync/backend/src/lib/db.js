@@ -693,6 +693,73 @@ export const getLastScan = async () => {
   return db.data.scanLog[0] || null;
 };
 
+const mergeListByJson = (existing = [], incoming = []) => {
+  const byKey = new Map();
+  for (const item of [...(Array.isArray(existing) ? existing : []), ...(Array.isArray(incoming) ? incoming : [])]) {
+    if (item === null || item === undefined) {
+      continue;
+    }
+    byKey.set(JSON.stringify(item), item);
+  }
+  return [...byKey.values()];
+};
+
+const firstNonEmpty = (...values) => values.find((value) => (
+  value !== null
+  && value !== undefined
+  && !(typeof value === 'string' && value.trim() === '')
+));
+
+const mergeCaseRecords = (existing = {}, incoming = {}) => {
+  const incomingIsManualFolder = incoming.triggerName === 'Manual case folder';
+  const existingHasManualIdentity = Boolean(existing.caseColor);
+  const keepManualTitle = existingHasManualIdentity && !incomingIsManualFolder;
+
+  return {
+    ...existing,
+    ...incoming,
+    id: firstNonEmpty(incoming.id, existing.id, incoming.caseId, existing.caseId),
+    caseId: firstNonEmpty(incoming.caseId, existing.caseId),
+    caseTitle: keepManualTitle
+      ? existing.caseTitle
+      : firstNonEmpty(incoming.caseTitle, existing.caseTitle, incoming.caseId, existing.caseId),
+    caseColor: firstNonEmpty(incoming.caseColor, existing.caseColor, ''),
+    status: firstNonEmpty(existing.status, incoming.status, 'active'),
+    triggerId: incomingIsManualFolder
+      ? firstNonEmpty(existing.triggerId, incoming.triggerId, null)
+      : firstNonEmpty(incoming.triggerId, existing.triggerId, null),
+    triggerName: incomingIsManualFolder
+      ? firstNonEmpty(existing.triggerName, incoming.triggerName, null)
+      : firstNonEmpty(incoming.triggerName, existing.triggerName, null),
+    htmlLink: firstNonEmpty(incoming.htmlLink, existing.htmlLink, ''),
+    summary: incomingIsManualFolder
+      ? firstNonEmpty(existing.summary, incoming.summary, '')
+      : firstNonEmpty(incoming.summary, existing.summary, ''),
+    description: incomingIsManualFolder
+      ? firstNonEmpty(existing.description, incoming.description, '')
+      : firstNonEmpty(incoming.description, existing.description, ''),
+    caseConfidence: incoming.caseConfidence ?? existing.caseConfidence ?? null,
+    isEstimated: incoming.isEstimated ?? existing.isEstimated ?? false,
+    deadlines: mergeListByJson(existing.deadlines, incoming.deadlines),
+    sourceCalendarId: incoming.sourceCalendarId === 'CaseSync'
+      ? firstNonEmpty(existing.sourceCalendarId, incoming.sourceCalendarId, 'CaseSync')
+      : firstNonEmpty(incoming.sourceCalendarId, existing.sourceCalendarId, 'primary'),
+    sourceAccount: firstNonEmpty(incoming.sourceAccount, existing.sourceAccount, ''),
+    sourceEventSummary: incomingIsManualFolder
+      ? firstNonEmpty(existing.sourceEventSummary, incoming.sourceEventSummary, '')
+      : firstNonEmpty(incoming.sourceEventSummary, existing.sourceEventSummary, ''),
+    start: incoming.start || existing.start || null,
+    end: incoming.end || existing.end || null,
+    proofServiceDate: firstNonEmpty(incoming.proofServiceDate, existing.proofServiceDate, ''),
+    proofServiceMethod: firstNonEmpty(incoming.proofServiceMethod, existing.proofServiceMethod, ''),
+    responseDeadlineDate: firstNonEmpty(incoming.responseDeadlineDate, existing.responseDeadlineDate, ''),
+    discoverySets: [...new Set([
+      ...(Array.isArray(existing.discoverySets) ? existing.discoverySets : []),
+      ...(Array.isArray(incoming.discoverySets) ? incoming.discoverySets : []),
+    ])],
+    lastUpdated: firstNonEmpty(incoming.lastUpdated, existing.lastUpdated, new Date().toISOString()),
+  };
+};
 
 export const upsertCaseRecord = async (record) => {
   const payload = {
@@ -737,28 +804,62 @@ export const upsertCaseRecord = async (record) => {
         $16, $17, $18::jsonb, $19::jsonb, $20, $21, $22, $23, now()
        )
        on conflict (case_id) do update set
-        event_id = excluded.event_id,
-        case_title = excluded.case_title,
+        event_id = coalesce(nullif(excluded.event_id, ''), cases.event_id),
+        case_title = case
+          when nullif(cases.case_color, '') is not null and excluded.trigger_name is distinct from 'Manual case folder'
+            then cases.case_title
+          else coalesce(nullif(excluded.case_title, ''), cases.case_title)
+        end,
         case_color = coalesce(nullif(excluded.case_color, ''), cases.case_color),
-        status = excluded.status,
-        trigger_id = excluded.trigger_id,
-        trigger_name = excluded.trigger_name,
-        html_link = excluded.html_link,
-        summary = excluded.summary,
-        description = excluded.description,
+        status = coalesce(nullif(cases.status, ''), excluded.status, 'active'),
+        trigger_id = case
+          when excluded.trigger_name = 'Manual case folder' then coalesce(cases.trigger_id, excluded.trigger_id)
+          else coalesce(excluded.trigger_id, cases.trigger_id)
+        end,
+        trigger_name = case
+          when excluded.trigger_name = 'Manual case folder' then coalesce(nullif(cases.trigger_name, ''), excluded.trigger_name)
+          else coalesce(nullif(excluded.trigger_name, ''), cases.trigger_name)
+        end,
+        html_link = coalesce(nullif(excluded.html_link, ''), cases.html_link),
+        summary = case
+          when excluded.trigger_name = 'Manual case folder' then coalesce(nullif(cases.summary, ''), excluded.summary)
+          else coalesce(nullif(excluded.summary, ''), cases.summary)
+        end,
+        description = case
+          when excluded.trigger_name = 'Manual case folder' then coalesce(nullif(cases.description, ''), excluded.description)
+          else coalesce(nullif(excluded.description, ''), cases.description)
+        end,
         last_updated = excluded.last_updated,
-        case_confidence = excluded.case_confidence,
+        case_confidence = coalesce(excluded.case_confidence, cases.case_confidence),
         is_estimated = excluded.is_estimated,
-        deadlines = excluded.deadlines,
-        source_calendar_id = excluded.source_calendar_id,
-        source_account = excluded.source_account,
-        source_event_summary = excluded.source_event_summary,
-        start_payload = excluded.start_payload,
-        end_payload = excluded.end_payload,
-        proof_service_date = excluded.proof_service_date,
-        proof_service_method = excluded.proof_service_method,
-        response_deadline_date = excluded.response_deadline_date,
-        discovery_sets = excluded.discovery_sets,
+        deadlines = (
+          select coalesce(jsonb_agg(merged.value), '[]'::jsonb)
+          from (
+            select distinct value
+            from jsonb_array_elements(coalesce(cases.deadlines, '[]'::jsonb)) as existing(value)
+            union
+            select distinct value
+            from jsonb_array_elements(coalesce(excluded.deadlines, '[]'::jsonb)) as incoming(value)
+          ) as merged
+        ),
+        source_calendar_id = case
+          when excluded.source_calendar_id = 'CaseSync' then coalesce(nullif(cases.source_calendar_id, ''), excluded.source_calendar_id)
+          else coalesce(nullif(excluded.source_calendar_id, ''), cases.source_calendar_id)
+        end,
+        source_account = coalesce(nullif(excluded.source_account, ''), cases.source_account),
+        source_event_summary = case
+          when excluded.trigger_name = 'Manual case folder' then coalesce(nullif(cases.source_event_summary, ''), excluded.source_event_summary)
+          else coalesce(nullif(excluded.source_event_summary, ''), cases.source_event_summary)
+        end,
+        start_payload = coalesce(excluded.start_payload, cases.start_payload),
+        end_payload = coalesce(excluded.end_payload, cases.end_payload),
+        proof_service_date = coalesce(nullif(excluded.proof_service_date, ''), cases.proof_service_date),
+        proof_service_method = coalesce(nullif(excluded.proof_service_method, ''), cases.proof_service_method),
+        response_deadline_date = coalesce(nullif(excluded.response_deadline_date, ''), cases.response_deadline_date),
+        discovery_sets = (
+          select coalesce(array_agg(distinct item), '{}'::text[])
+          from unnest(coalesce(cases.discovery_sets, '{}'::text[]) || coalesce(excluded.discovery_sets, '{}'::text[])) as merged_sets(item)
+        ),
         updated_at = now()
        returning *`,
       [
@@ -797,7 +898,10 @@ export const upsertCaseRecord = async (record) => {
   if (index === -1) {
     db.data.cases.unshift(next);
   } else {
-    db.data.cases[index] = { ...db.data.cases[index], ...next };
+    db.data.cases[index] = {
+      ...mergeCaseRecords(db.data.cases[index], next),
+      updatedAt: new Date().toISOString(),
+    };
   }
   await write();
   return next;
