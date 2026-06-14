@@ -116,6 +116,17 @@ const estimateLabel = (value, fallback) => {
 
 const safeCaseId = (value) => (typeof value === 'string' ? value.trim() : '');
 
+const isValidCaseId = (value) => {
+  const candidate = safeCaseId(value);
+  if (candidate.length < 5) {
+    return false;
+  }
+  if (!/[0-9]/.test(candidate)) {
+    return false;
+  }
+  return /^[A-Za-z0-9][A-Za-z0-9-]*$/.test(candidate);
+};
+
 const toStatusString = (value) => (value === 'closed' || value === 'pending' || value === 'active' ? value : 'active');
 
 const firstDeadline = (deadlines = []) => {
@@ -511,57 +522,69 @@ export const getCaseRecords = async (targetAccountEmail = null) => {
       continue;
     }
 
-    const auth = getAuthClient(account.tokens, {
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      redirectUri: process.env.GOOGLE_REDIRECT_URI,
-    });
+    try {
+      const auth = getAuthClient(account.tokens, {
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        redirectUri: process.env.GOOGLE_REDIRECT_URI,
+      });
 
-    for (const calendarId of calendarIds) {
-      const events = await listCaseEvents(auth, calendarId);
-      for (const event of events) {
-        const caseId = event.extendedProperties?.private?.caseId || '';
-        const deadlines = extractDeadlinesFromDescription(event.description || '');
-        const nextDeadline = deadlines
-          .slice()
-          .sort((a, b) => `${a.date}${a.time || ''}`.localeCompare(`${b.date}${b.time || ''}`))[0] || null;
-        const proofServiceDate = normalizeDate(event.extendedProperties?.private?.proofServiceDate) || '';
-        const proofServiceMethod = event.extendedProperties?.private?.proofServiceMethod || '';
-        const responseDeadlineDate = normalizeDate(event.extendedProperties?.private?.responseDeadlineDate)
-          || responseDeadlineFromService(proofServiceDate, proofServiceMethod);
+      for (const calendarId of calendarIds) {
+        try {
+          const events = await listCaseEvents(auth, calendarId);
+          for (const event of events) {
+            const caseId = event.extendedProperties?.private?.caseId || '';
+            if (!isValidCaseId(caseId)) {
+              continue;
+            }
 
-        const key = `${caseId}-${event.id}`;
-        if (!records.has(key)) {
-          records.set(key, {
-            id: event.id,
-            caseId,
-            caseTitle: (event.summary || '').replace(/^\[[^\]]+\]\s*/, ''),
-            status: event.extendedProperties?.private?.status || 'active',
-            triggerId: event.extendedProperties?.private?.triggerId || null,
-            triggerName: event.extendedProperties?.private?.triggerName || null,
-            htmlLink: event.htmlLink || '',
-            summary: event.summary || '',
-            description: event.description || '',
-            lastUpdated: event.extendedProperties?.private?.lastUpdated || event.updated,
-            caseConfidence: parseConfidence(event.extendedProperties?.private?.caseConfidence),
-            isEstimated: (event.extendedProperties?.private?.estimated || 'false') === 'true',
-            deadlines,
-            nextDeadline,
-            sourceCalendarId: calendarId,
-            sourceAccount: account.email,
-            sourceEventSummary: event.summary || '',
-            start: event.start,
-            end: event.end,
-            proofServiceDate,
-            proofServiceMethod,
-            responseDeadlineDate,
-            discoverySets: (event.extendedProperties?.private?.discoverySets || '')
-              .split(',')
-              .map((item) => item.trim())
-              .filter(Boolean),
-          });
+            const deadlines = extractDeadlinesFromDescription(event.description || '');
+            const nextDeadline = deadlines
+              .slice()
+              .sort((a, b) => `${a.date}${a.time || ''}`.localeCompare(`${b.date}${b.time || ''}`))[0] || null;
+            const proofServiceDate = normalizeDate(event.extendedProperties?.private?.proofServiceDate) || '';
+            const proofServiceMethod = event.extendedProperties?.private?.proofServiceMethod || '';
+            const responseDeadlineDate = normalizeDate(event.extendedProperties?.private?.responseDeadlineDate)
+              || responseDeadlineFromService(proofServiceDate, proofServiceMethod);
+
+            const key = `${caseId}-${event.id}`;
+            if (!records.has(key)) {
+              records.set(key, {
+                id: event.id,
+                caseId,
+                caseTitle: (event.summary || '').replace(/^\[[^\]]+\]\s*/, ''),
+                status: event.extendedProperties?.private?.status || 'active',
+                triggerId: event.extendedProperties?.private?.triggerId || null,
+                triggerName: event.extendedProperties?.private?.triggerName || null,
+                htmlLink: event.htmlLink || '',
+                summary: event.summary || '',
+                description: event.description || '',
+                lastUpdated: event.extendedProperties?.private?.lastUpdated || event.updated,
+                caseConfidence: parseConfidence(event.extendedProperties?.private?.caseConfidence),
+                isEstimated: (event.extendedProperties?.private?.estimated || 'false') === 'true',
+                deadlines,
+                nextDeadline,
+                sourceCalendarId: calendarId,
+                sourceAccount: account.email,
+                sourceEventSummary: event.summary || '',
+                start: event.start,
+                end: event.end,
+                proofServiceDate,
+                proofServiceMethod,
+                responseDeadlineDate,
+                discoverySets: (event.extendedProperties?.private?.discoverySets || '')
+                  .split(',')
+                  .map((item) => item.trim())
+                  .filter(Boolean),
+              });
+            }
+          }
+        } catch (error) {
+          console.warn(`Skipping calendar ${calendarId} for ${account.email}: ${error.message || 'calendar read failed'}`);
         }
       }
+    } catch (error) {
+      console.warn(`Skipping account ${account.email}: ${error.message || 'account read failed'}`);
     }
   }
 
