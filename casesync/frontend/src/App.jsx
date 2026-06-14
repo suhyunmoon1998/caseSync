@@ -16,6 +16,7 @@ import {
   runScan,
   updateCaseStatus,
   deleteCase,
+  createCaseFolder,
 } from './utils/api';
 
 const DEFAULT_SCAN_POLL_MS = 5 * 60 * 1000;
@@ -252,6 +253,17 @@ export default function App() {
     }
   };
 
+  const onCreateCaseFolder = async (payload) => {
+    try {
+      await createCaseFolder(payload);
+      await loadCases();
+      setActiveView('cases');
+      setToast('Case added to workspace');
+    } catch (error) {
+      setToast(toastForError(error));
+    }
+  };
+
   const onTriggerSaved = async () => {
     await loadCases();
     await loadLogs();
@@ -268,6 +280,7 @@ export default function App() {
 
   const casesProps = {
     cases,
+    onCreateCaseFolder,
     onStatusChange: onUpdateCaseStatus,
     onDelete: onDeleteCase,
   };

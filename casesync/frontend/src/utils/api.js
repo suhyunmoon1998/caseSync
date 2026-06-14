@@ -109,6 +109,11 @@ export const createManualCase = async (payload) => {
   return response.data;
 };
 
+export const createCaseFolder = async (payload) => {
+  const response = await client.post('/api/cases/folder', payload);
+  return response.data.case;
+};
+
 export const getCalendars = async (email) => {
   const response = await client.get('/api/calendar/list', { params: { email } });
   return response.data.calendars || [];

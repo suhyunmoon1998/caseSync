@@ -3081,3 +3081,53 @@ textarea,
   color: var(--danger-text);
   background: var(--danger-soft);
 }
+
+/* Manual case workspace folders: quick entry plus stable color grouping. */
+.quick-case-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.1fr) minmax(180px, 0.9fr) minmax(180px, 0.8fr) auto;
+  align-items: end;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.quick-case-form h3 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+
+.quick-case-form p {
+  margin: 0;
+}
+
+.case-card__color-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  display: inline-block;
+  margin-right: 8px;
+  background: var(--case-color, var(--accent));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--case-color, var(--accent)) 14%, transparent);
+  vertical-align: middle;
+}
+
+.cases-grid > .card[role="button"] {
+  cursor: pointer;
+}
+
+.cases-grid > .card[role="button"]:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--case-color, var(--accent)) 24%, transparent);
+  outline-offset: 3px;
+}
+
+@media (max-width: 1120px) {
+  .quick-case-form {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .quick-case-form {
+    grid-template-columns: 1fr;
+  }
+}

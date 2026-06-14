@@ -163,6 +163,7 @@ export default function CaseCard({
     ? caseItem.summary
     : 'Proof of Service deadline package detected and added to Calendar.';
   const fullNotes = caseItem.description || '';
+  const caseColor = caseItem.caseColor || priority.color;
   const [relatedEmails, setRelatedEmails] = useState([]);
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
@@ -256,14 +257,32 @@ export default function CaseCard({
   return (
     <div
       className="card"
+      role="button"
+      tabIndex={0}
+      onClick={(event) => {
+        if (event.target.closest('button, a, input, select, textarea, summary, details')) {
+          return;
+        }
+        onExpand(caseItem.caseId);
+      }}
+      onKeyDown={(event) => {
+        if (event.target.closest('button, a, input, select, textarea, summary, details')) {
+          return;
+        }
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onExpand(caseItem.caseId);
+        }
+      }}
       style={{
         position: 'relative',
-        borderLeft: `6px solid ${priority.color}`,
+        borderLeft: `6px solid ${caseColor}`,
+        '--case-color': caseColor,
       }}
     >
       <div className="case-card__header">
         <div>
-          <h3>{caseId}</h3>
+          <h3><span className="case-card__color-dot" />{caseId}</h3>
           <p className="meta">{caseLabel}</p>
         </div>
         <div className="case-card__header-meta">

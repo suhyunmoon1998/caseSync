@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import CaseCard from '../components/CaseCard';
 
@@ -9,8 +9,24 @@ const statusList = [
   { value: 'closed', label: 'Closed' },
 ];
 
+const caseColorPalette = [
+  '#0071e3',
+  '#34c759',
+  '#ff9f0a',
+  '#ff3b30',
+  '#af52de',
+  '#5e5ce6',
+  '#00a7a7',
+  '#bf5af2',
+  '#ac8e68',
+  '#ff6b35',
+];
+
+const randomCaseColor = () => caseColorPalette[Math.floor(Math.random() * caseColorPalette.length)];
+
 export default function Cases({
   cases = [],
+  onCreateCaseFolder,
   onStatusChange,
   onDelete,
 }) {
@@ -19,6 +35,9 @@ export default function Cases({
   const [expandedCaseId, setExpandedCaseId] = useState('');
   const [threshold, setThreshold] = useState(60);
   const [filterRowsBelowThreshold, setFilterRowsBelowThreshold] = useState(false);
+  const [caseName, setCaseName] = useState('');
+  const [caseNumber, setCaseNumber] = useState('');
+  const [isCreatingCase, setIsCreatingCase] = useState(false);
 
   const isBelowThreshold = (caseItem) => {
     if (typeof caseItem.caseConfidence !== 'number') {
@@ -49,6 +68,28 @@ export default function Cases({
     });
   }, [cases, statusFilter, searchText, threshold, filterRowsBelowThreshold]);
 
+  const submitCaseFolder = async (event) => {
+    event.preventDefault();
+    const cleanNumber = caseNumber.trim();
+    if (!cleanNumber || !onCreateCaseFolder) {
+      return;
+    }
+
+    setIsCreatingCase(true);
+    try {
+      await onCreateCaseFolder({
+        caseId: cleanNumber,
+        caseTitle: caseName.trim() || cleanNumber,
+        caseColor: randomCaseColor(),
+      });
+      setCaseName('');
+      setCaseNumber('');
+      setExpandedCaseId(cleanNumber);
+    } finally {
+      setIsCreatingCase(false);
+    }
+  };
+
   return (
     <div className="cases-page page-enter">
       <div className="topbar">
@@ -60,6 +101,30 @@ export default function Cases({
           Showing: {filtered.length} / {cases.length}
         </div>
       </div>
+
+      <form className="card quick-case-form" onSubmit={submitCaseFolder}>
+        <div>
+          <h3>Add case to workspace</h3>
+          <p className="meta">Enter a case name and case number. CaseSync assigns a color and links matching emails after scans.</p>
+        </div>
+        <input
+          className="input"
+          value={caseName}
+          onChange={(event) => setCaseName(event.target.value)}
+          placeholder="Case name, e.g. Mun v. Apex"
+        />
+        <input
+          className="input"
+          value={caseNumber}
+          onChange={(event) => setCaseNumber(event.target.value)}
+          placeholder="Case number, e.g. 26STCV10888"
+          required
+        />
+        <button className="btn-primary" type="submit" disabled={isCreatingCase || !caseNumber.trim()}>
+          {isCreatingCase ? <span className="spinner" /> : <Plus size={14} />}
+          {isCreatingCase ? 'Adding...' : 'Add case'}
+        </button>
+      </form>
 
       <div className="layout-grid two-col" style={{ marginBottom: 12 }}>
         <div className="card control-panel">
@@ -132,9 +197,9 @@ export default function Cases({
           <CaseCard
             key={`${item.caseId}-${item.id}`}
             caseItem={item}
-            expanded={expandedCaseId === item.id}
+            expanded={expandedCaseId === item.caseId}
             showEstimateAtOrAbove={threshold}
-            onExpand={() => setExpandedCaseId(expandedCaseId === item.id ? '' : item.id)}
+            onExpand={() => setExpandedCaseId(expandedCaseId === item.caseId ? '' : item.caseId)}
             onStatusChange={onStatusChange}
             onDelete={onDelete}
           />

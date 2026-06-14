@@ -770,6 +770,47 @@ export const createManualCase = async ({
   return { case: toDeadlineUi(record), calendarEventUrl: event.htmlLink || '' };
 };
 
+export const createCaseFolder = async ({
+  caseId = '',
+  caseTitle = '',
+  caseColor = '',
+}) => {
+  const normalizedCaseId = safeCaseId(caseId);
+  if (!isValidCaseId(normalizedCaseId)) {
+    throw new Error('A valid case number is required');
+  }
+
+  const stored = await getCaseRecordsFromDb();
+  const existing = stored.find((item) => item.caseId === normalizedCaseId);
+  const now = new Date().toISOString();
+  const record = await upsertCaseRecord({
+    ...(existing || {}),
+    id: existing?.id || normalizedCaseId,
+    caseId: normalizedCaseId,
+    caseTitle: caseTitle || existing?.caseTitle || normalizedCaseId,
+    caseColor: caseColor || existing?.caseColor || '',
+    status: existing?.status || 'active',
+    triggerName: existing?.triggerName || 'Manual case folder',
+    summary: existing?.summary || 'Manual case folder. Related emails will appear here after scans.',
+    description: existing?.description || '',
+    lastUpdated: now,
+    caseConfidence: existing?.caseConfidence ?? 100,
+    isEstimated: existing?.isEstimated ?? false,
+    deadlines: existing?.deadlines || [],
+    sourceCalendarId: existing?.sourceCalendarId || 'CaseSync',
+    sourceAccount: existing?.sourceAccount || '',
+    sourceEventSummary: existing?.sourceEventSummary || '',
+    start: existing?.start || null,
+    end: existing?.end || null,
+    proofServiceDate: existing?.proofServiceDate || '',
+    proofServiceMethod: existing?.proofServiceMethod || '',
+    responseDeadlineDate: existing?.responseDeadlineDate || '',
+    discoverySets: existing?.discoverySets || [],
+  });
+
+  return { case: toDeadlineUi(record) };
+};
+
 export const getCaseRecords = async (_targetAccountEmail = null) => {
   const stored = await getCaseRecordsFromDb();
   return stored.map(toDeadlineUi);

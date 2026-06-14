@@ -54,7 +54,7 @@ const getPool = () => {
 const toSnake = (value = '') => value.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
 
 const normalizeScanLogRow = (row) => ({
-  id: row.id,
+  id: row.event_id || row.id || row.case_id,
   startedAt: row.started_at,
   finishedAt: row.finished_at,
   trigger: row.trigger,
@@ -82,6 +82,7 @@ const normalizeCaseRow = (row) => ({
   id: row.id,
   caseId: row.case_id,
   caseTitle: row.case_title || row.case_id,
+  caseColor: row.case_color || '',
   status: row.status || 'active',
   triggerId: row.trigger_id || null,
   triggerName: row.trigger_name || null,
@@ -220,6 +221,7 @@ const initPostgresDb = async () => {
       case_id text primary key,
       event_id text,
       case_title text,
+      case_color text,
       status text not null default 'active',
       trigger_id text,
       trigger_name text,
@@ -242,6 +244,7 @@ const initPostgresDb = async () => {
       updated_at timestamptz not null default now()
     )
   `);
+  await pg.query('alter table cases add column if not exists case_color text');
   await pg.query(`
     create table if not exists case_emails (
       message_id text primary key,
@@ -696,6 +699,7 @@ export const upsertCaseRecord = async (record) => {
     id: record.id || record.eventId || record.caseId,
     caseId: record.caseId,
     caseTitle: record.caseTitle || record.caseId,
+    caseColor: record.caseColor || '',
     status: record.status || 'active',
     triggerId: record.triggerId || record.trigger?.id || null,
     triggerName: record.triggerName || record.trigger?.name || null,
@@ -724,17 +728,18 @@ export const upsertCaseRecord = async (record) => {
   if (storageMode === 'postgres') {
     const { rows } = await getPool().query(
       `insert into cases (
-        case_id, event_id, case_title, status, trigger_id, trigger_name, html_link, summary,
+        case_id, event_id, case_title, case_color, status, trigger_id, trigger_name, html_link, summary,
         description, last_updated, case_confidence, is_estimated, deadlines, source_calendar_id,
         source_account, source_event_summary, start_payload, end_payload, proof_service_date,
         proof_service_method, response_deadline_date, discovery_sets, updated_at
        ) values (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb, $14,
-        $15, $16, $17::jsonb, $18::jsonb, $19, $20, $21, $22, now()
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb, $15,
+        $16, $17, $18::jsonb, $19::jsonb, $20, $21, $22, $23, now()
        )
        on conflict (case_id) do update set
         event_id = excluded.event_id,
         case_title = excluded.case_title,
+        case_color = coalesce(nullif(excluded.case_color, ''), cases.case_color),
         status = excluded.status,
         trigger_id = excluded.trigger_id,
         trigger_name = excluded.trigger_name,
@@ -760,6 +765,7 @@ export const upsertCaseRecord = async (record) => {
         payload.caseId,
         payload.id,
         payload.caseTitle,
+        payload.caseColor,
         payload.status,
         payload.triggerId,
         payload.triggerName,

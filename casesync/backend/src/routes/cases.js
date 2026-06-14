@@ -5,6 +5,7 @@ import {
   deleteCaseById,
   importCalendarCasesToDb,
   createManualCase,
+  createCaseFolder,
 } from '../lib/scanner.js';
 import {
   getCaseEmailRecords,
@@ -40,6 +41,16 @@ router.post('/manual', async (req, res) => {
   } catch (error) {
     console.error('Create manual case failed', error);
     res.status(400).json({ error: error.message || 'Failed to create manual calendar entry' });
+  }
+});
+
+router.post('/folder', async (req, res) => {
+  try {
+    const result = await createCaseFolder(req.body || {});
+    res.json({ success: true, ...result });
+  } catch (error) {
+    console.error('Create case folder failed', error);
+    res.status(400).json({ error: error.message || 'Failed to create case folder' });
   }
 });
 
