@@ -2169,3 +2169,79 @@ textarea,
 .calendar-day:has(.quick-add-popover) {
   z-index: 60;
 }
+
+/* Wide-screen workspace layout: use the full browser canvas. */
+:root {
+  --workspace-max: 1680px;
+}
+
+.clean-header {
+  max-width: var(--workspace-max);
+  width: calc(100% - 40px);
+}
+
+.main-clean {
+  max-width: var(--workspace-max);
+  width: calc(100% - 40px);
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.clean-section-hero {
+  min-height: 184px;
+}
+
+.app-shell-clean .stats {
+  grid-template-columns: repeat(7, minmax(130px, 1fr));
+}
+
+.app-shell-clean .stat {
+  min-height: 116px;
+}
+
+.app-shell-clean .layout-grid.two-col {
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.42fr);
+}
+
+.app-shell-clean .layout-grid.two-col:has(.calendar-months) {
+  grid-template-columns: minmax(0, 1.55fr) minmax(340px, 0.45fr);
+}
+
+.app-shell-clean .calendar-months {
+  max-height: 820px;
+}
+
+.calendar-day {
+  min-height: 116px;
+}
+
+.cases-grid {
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+}
+
+.trigger-editor-grid {
+  grid-template-columns: minmax(420px, 0.9fr) minmax(320px, 0.55fr);
+}
+
+@media (max-width: 1320px) {
+  .app-shell-clean .stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .app-shell-clean .layout-grid.two-col,
+  .app-shell-clean .layout-grid.two-col:has(.calendar-months),
+  .trigger-editor-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .clean-header,
+  .main-clean {
+    width: calc(100% - 20px);
+  }
+
+  .app-shell-clean .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
