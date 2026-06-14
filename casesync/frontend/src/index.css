@@ -2843,3 +2843,121 @@ textarea,
 .notification-panel.header-notification-panel {
   width: min(360px, calc(100vw - 32px));
 }
+
+/* Case email workspace: compact, review-first related inbox inside each case. */
+.case-emails {
+  display: grid;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.48);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.case-emails__head,
+.case-email-top,
+.case-email-actions,
+.case-email-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.case-emails__head,
+.case-email-top {
+  justify-content: space-between;
+}
+
+.case-emails__head h4 {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 15px;
+}
+
+.case-email-list {
+  display: grid;
+  gap: 8px;
+  max-height: 360px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.case-email-item {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 11px;
+}
+
+.case-email-item.needs-review {
+  border-color: rgba(255, 159, 10, 0.38);
+  background: linear-gradient(180deg, rgba(255, 250, 240, 0.92), rgba(255, 255, 255, 0.78));
+}
+
+.case-email-subject {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.case-email-badges,
+.case-email-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.case-email-preview {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.48;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.case-email-empty,
+.case-email-error {
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 13px;
+}
+
+.case-email-empty {
+  color: var(--text-2);
+  background: rgba(0, 0, 0, 0.035);
+}
+
+.case-email-error {
+  color: var(--danger-text);
+  background: var(--danger-soft);
+  border: 1px solid rgba(255, 59, 48, 0.22);
+}
+
+.cases-grid .card:has(.case-emails) {
+  grid-column: span 2;
+}
+
+@media (max-width: 980px) {
+  .cases-grid .card:has(.case-emails) {
+    grid-column: span 1;
+  }
+
+  .case-email-top {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .case-email-badges,
+  .case-email-actions {
+    justify-content: flex-start;
+  }
+}

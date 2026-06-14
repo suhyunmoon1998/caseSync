@@ -76,6 +76,19 @@ export const getCase = async (caseId) => {
   return response.data.case;
 };
 
+export const getCaseEmails = async (caseId) => {
+  const response = await client.get(`/api/cases/${encodeURIComponent(caseId)}/emails`);
+  return response.data.emails || [];
+};
+
+export const updateCaseEmail = async (caseId, messageId, payload) => {
+  const response = await client.patch(
+    `/api/cases/${encodeURIComponent(caseId)}/emails/${encodeURIComponent(messageId)}`,
+    payload,
+  );
+  return response.data.email;
+};
+
 export const updateCaseStatus = async (caseId, status) => {
   const response = await client.patch(`/api/cases/${encodeURIComponent(caseId)}/status`, { status });
   return response.data;

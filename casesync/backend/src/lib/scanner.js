@@ -9,6 +9,8 @@ import {
   markEmailProcessed,
   upsertAccount,
   upsertCaseRecord,
+  upsertCaseEmailRecord,
+  getCaseEmailByMessageId,
   getCaseRecordsFromDb,
   updateCaseRecordStatus,
   deleteCaseRecord,
@@ -282,6 +284,51 @@ const buildResponsePackage = ({
   };
 };
 
+const storeCaseEmail = async ({
+  email,
+  account,
+  trigger,
+  caseId,
+  parsed = {},
+  caseConfidence = null,
+  classification = 'matched',
+  needsReview = false,
+  sourceReason = '',
+}) => {
+  if (!caseId) {
+    return null;
+  }
+
+  return upsertCaseEmailRecord({
+    messageId: email.id,
+    threadId: email.threadId,
+    caseId,
+    accountEmail: account.email,
+    fromEmail: email.from,
+    subject: email.subject,
+    snippet: email.snippet,
+    bodyPreview: email.body || email.snippet,
+    receivedAt: email.date,
+    triggerId: trigger.id,
+    triggerName: trigger.name,
+    caseConfidence,
+    classification,
+    needsReview,
+    sourceReason,
+    raw: {
+      subject: email.subject,
+      from: email.from,
+      date: email.date,
+      snippet: email.snippet,
+      parsedSummary: parsed.summary || '',
+      proofServiceDate: parsed.proofServiceDate || '',
+      proofServiceMethod: parsed.proofServiceMethod || '',
+      discoverySets: parsed.discoverySets || [],
+      hasActionableDeadline: Boolean(parsed.hasActionableDeadline),
+    },
+  });
+};
+
 const shouldTreatAsEstimated = (caseId, caseConfidence, parsedEstimated) => {
   if (parsedEstimated === false) {
     return false;
@@ -360,7 +407,8 @@ export const runAutoScan = async (triggerSource = 'auto') => {
           summary.emailsScanned += 1;
 
           const alreadyProcessed = await isProcessedEmail(email.id);
-          if (alreadyProcessed) {
+          const alreadySavedToCase = alreadyProcessed ? await getCaseEmailByMessageId(email.id) : null;
+          if (alreadyProcessed && alreadySavedToCase) {
             continue;
           }
 
@@ -373,7 +421,8 @@ export const runAutoScan = async (triggerSource = 'auto') => {
               caseIdPatterns: trigger.caseIdPatterns || [],
             });
 
-            const caseId = safeCaseId(parsed.caseId);
+            const parsedCaseId = safeCaseId(parsed.caseId);
+            const caseId = isValidCaseId(parsedCaseId) ? parsedCaseId : '';
             const deadlines = Array.isArray(parsed.deadlines) ? [...parsed.deadlines] : [];
             const responsePackage = buildResponsePackage({
               proofServiceDate: parsed.proofServiceDate,
@@ -396,6 +445,20 @@ export const runAutoScan = async (triggerSource = 'auto') => {
             );
 
             if (!hasActionableDeadline) {
+              if (caseId) {
+                const reviewConfidence = estimateLabel(parsed.caseConfidence, 70);
+                await storeCaseEmail({
+                  email,
+                  account,
+                  trigger,
+                  caseId,
+                  parsed,
+                  caseConfidence: reviewConfidence,
+                  classification: 'case-signal',
+                  needsReview: true,
+                  sourceReason: 'Case signal found, but no actionable deadline was confirmed.',
+                });
+              }
               await markEmailProcessed(email.id);
               continue;
             }
@@ -465,6 +528,17 @@ export const runAutoScan = async (triggerSource = 'auto') => {
               }
             }
 
+            await storeCaseEmail({
+              email,
+              account,
+              trigger,
+              caseId,
+              parsed,
+              caseConfidence,
+              classification: 'deadline-package',
+              needsReview: caseConfidence < 80 || Boolean(payload.estimated),
+              sourceReason: 'Trigger matched and CaseSync created or updated a response deadline package.',
+            });
             await markEmailProcessed(email.id);
           } catch (error) {
             const msg = `${trigger.name || trigger.id}: ${error.message || 'scan error'}`;

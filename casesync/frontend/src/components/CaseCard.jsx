@@ -1,5 +1,7 @@
-import { ExternalLink, Eye, Pencil, RefreshCcw, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { CheckCircle2, ExternalLink, Eye, Mail, Pencil, RefreshCcw, Trash2 } from 'lucide-react';
 import { differenceInCalendarDays, format, parseISO } from 'date-fns';
+import { getCaseEmails, updateCaseEmail } from '../utils/api';
 
 const parseDeadlineDate = (value) => {
   if (!value) {
@@ -27,6 +29,18 @@ const toDisplayDateTime = (deadline) => {
   }
 
   return deadline.date;
+};
+
+const formatEmailDate = (value) => {
+  if (!value) {
+    return 'Date unknown';
+  }
+
+  try {
+    return format(parseISO(value), 'yyyy-MM-dd HH:mm');
+  } catch {
+    return String(value);
+  }
 };
 
 const urgency = (deadline) => {
@@ -149,6 +163,95 @@ export default function CaseCard({
     ? caseItem.summary
     : 'Proof of Service deadline package detected and added to Calendar.';
   const fullNotes = caseItem.description || '';
+  const [relatedEmails, setRelatedEmails] = useState([]);
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+
+  const reloadEmails = async () => {
+    if (!caseItem.caseId) {
+      setRelatedEmails([]);
+      return;
+    }
+
+    setEmailLoading(true);
+    setEmailError('');
+    try {
+      const emails = await getCaseEmails(caseItem.caseId);
+      setRelatedEmails(emails);
+    } catch (error) {
+      setEmailError(error.response?.data?.error || error.message || 'Failed to load related emails');
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!expanded) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    const load = async () => {
+      if (!caseItem.caseId) {
+        setRelatedEmails([]);
+        return;
+      }
+
+      setEmailLoading(true);
+      setEmailError('');
+      try {
+        const emails = await getCaseEmails(caseItem.caseId);
+        if (!cancelled) {
+          setRelatedEmails(emails);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setEmailError(error.response?.data?.error || error.message || 'Failed to load related emails');
+        }
+      } finally {
+        if (!cancelled) {
+          setEmailLoading(false);
+        }
+      }
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [expanded, caseItem.caseId]);
+
+  const markEmailReviewed = async (messageId) => {
+    try {
+      await updateCaseEmail(caseItem.caseId, messageId, {
+        needsReview: false,
+        classification: 'reviewed',
+        sourceReason: 'Reviewed manually in CaseSync.',
+      });
+      await reloadEmails();
+    } catch (error) {
+      setEmailError(error.response?.data?.error || error.message || 'Failed to update email');
+    }
+  };
+
+  const moveEmailToCase = async (messageId) => {
+    const nextCaseId = window.prompt('Move this email to which case ID?', caseItem.caseId);
+    if (!nextCaseId || nextCaseId.trim() === caseItem.caseId) {
+      return;
+    }
+
+    try {
+      await updateCaseEmail(caseItem.caseId, messageId, {
+        caseId: nextCaseId.trim(),
+        needsReview: false,
+        classification: 'manual',
+        sourceReason: `Moved manually from ${caseItem.caseId}.`,
+      });
+      await reloadEmails();
+    } catch (error) {
+      setEmailError(error.response?.data?.error || error.message || 'Failed to move email');
+    }
+  };
 
   return (
     <div
@@ -248,6 +351,77 @@ export default function CaseCard({
           <div style={{ marginBottom: 12 }} className="case-card__section">
             <h4 style={{ margin: '0 0 6px 0' }}>Summary</h4>
             <div className="meta">{summaryText}</div>
+          </div>
+
+          <div className="case-card__section case-emails">
+            <div className="case-emails__head">
+              <h4>
+                <Mail size={15} />
+                Related emails
+              </h4>
+              <span className="hint-chip">{relatedEmails.length} linked</span>
+            </div>
+
+            {emailLoading ? (
+              <div className="meta">Loading related emails...</div>
+            ) : null}
+
+            {emailError ? (
+              <div className="case-email-error">{emailError}</div>
+            ) : null}
+
+            {!emailLoading && !emailError && relatedEmails.length === 0 ? (
+              <div className="case-email-empty">
+                No related emails saved yet. Run a scan to attach matched Gmail messages to this case.
+              </div>
+            ) : null}
+
+            {relatedEmails.length > 0 ? (
+              <div className="case-email-list">
+                {relatedEmails.map((email) => (
+                  <article
+                    className={`case-email-item${email.needsReview ? ' needs-review' : ''}`}
+                    key={email.messageId}
+                  >
+                    <div className="case-email-top">
+                      <div>
+                        <strong className="case-email-subject">{email.subject}</strong>
+                        <div className="meta">
+                          {email.fromEmail || 'Unknown sender'} · {formatEmailDate(email.receivedAt)}
+                        </div>
+                      </div>
+                      <div className="case-email-badges">
+                        {email.needsReview ? <span className="badge badge-medium">Review needed</span> : null}
+                        {typeof email.caseConfidence === 'number' ? (
+                          <span className="badge badge-low">{email.caseConfidence}%</span>
+                        ) : null}
+                        <span className="badge badge-closed">{email.classification}</span>
+                      </div>
+                    </div>
+
+                    <p className="case-email-preview">
+                      {email.bodyPreview || email.snippet || 'No preview available.'}
+                    </p>
+
+                    {email.sourceReason ? (
+                      <div className="meta">{email.sourceReason}</div>
+                    ) : null}
+
+                    <div className="case-email-actions">
+                      {email.needsReview ? (
+                        <button className="btn-success" type="button" onClick={() => markEmailReviewed(email.messageId)}>
+                          <CheckCircle2 size={13} />
+                          Mark reviewed
+                        </button>
+                      ) : null}
+                      <button className="btn-ghost" type="button" onClick={() => moveEmailToCase(email.messageId)}>
+                        Move to case
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           {fullNotes ? (

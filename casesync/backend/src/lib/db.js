@@ -16,6 +16,7 @@ const defaultData = {
   accounts: [],
   processedEmailIds: [],
   cases: [],
+  emails: [],
   scanState: {
     isRunning: false,
     lastRun: null,
@@ -102,6 +103,27 @@ const normalizeCaseRow = (row) => ({
   discoverySets: row.discovery_sets || [],
 });
 
+const normalizeCaseEmailRow = (row) => ({
+  messageId: row.message_id,
+  threadId: row.thread_id || '',
+  caseId: row.case_id,
+  accountEmail: row.account_email || '',
+  fromEmail: row.from_email || '',
+  subject: row.subject || '(No subject)',
+  snippet: row.snippet || '',
+  bodyPreview: row.body_preview || '',
+  receivedAt: row.received_at || row.created_at || null,
+  triggerId: row.trigger_id || null,
+  triggerName: row.trigger_name || '',
+  caseConfidence: row.case_confidence === null || row.case_confidence === undefined ? null : Number(row.case_confidence),
+  classification: row.classification || 'matched',
+  needsReview: Boolean(row.needs_review),
+  sourceReason: row.source_reason || '',
+  raw: row.raw || {},
+  createdAt: row.created_at || null,
+  updatedAt: row.updated_at || null,
+});
+
 const normalizeAccountRow = (row, includeTokens = false) => {
   const account = {
     email: row.email,
@@ -135,6 +157,7 @@ const sanitizeData = (data) => ({
   accounts: Array.isArray(data?.accounts) ? data.accounts : defaultData.accounts,
   processedEmailIds: Array.isArray(data?.processedEmailIds) ? data.processedEmailIds : defaultData.processedEmailIds,
   cases: Array.isArray(data?.cases) ? data.cases : defaultData.cases,
+  emails: Array.isArray(data?.emails) ? data.emails : defaultData.emails,
   scanState: data?.scanState && typeof data.scanState === 'object'
     ? data.scanState
     : defaultData.scanState,
@@ -219,6 +242,30 @@ const initPostgresDb = async () => {
       updated_at timestamptz not null default now()
     )
   `);
+  await pg.query(`
+    create table if not exists case_emails (
+      message_id text primary key,
+      thread_id text,
+      case_id text not null,
+      account_email text,
+      from_email text,
+      subject text,
+      snippet text,
+      body_preview text,
+      received_at timestamptz,
+      trigger_id text,
+      trigger_name text,
+      case_confidence integer,
+      classification text not null default 'matched',
+      needs_review boolean not null default false,
+      source_reason text,
+      raw jsonb not null default '{}'::jsonb,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `);
+  await pg.query('create index if not exists idx_case_emails_case_id on case_emails (case_id)');
+  await pg.query('create index if not exists idx_case_emails_needs_review on case_emails (needs_review)');
   await pg.query(`
     create table if not exists app_state (
       key text primary key,
@@ -794,4 +841,206 @@ export const deleteCaseRecord = async (caseId) => {
   db.data.cases = next;
   await write();
   return deleted;
+};
+
+const normalizeEmailDate = (value) => {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  return parsed.toISOString();
+};
+
+const emailPreview = (value = '', limit = 1800) => String(value || '')
+  .replace(/\s+/g, ' ')
+  .trim()
+  .slice(0, limit);
+
+export const upsertCaseEmailRecord = async (record) => {
+  const payload = {
+    messageId: String(record.messageId || record.id || '').trim(),
+    threadId: record.threadId || '',
+    caseId: String(record.caseId || '').trim(),
+    accountEmail: record.accountEmail || '',
+    fromEmail: record.fromEmail || record.from || '',
+    subject: record.subject || '(No subject)',
+    snippet: record.snippet || '',
+    bodyPreview: emailPreview(record.bodyPreview || record.body || record.snippet || ''),
+    receivedAt: normalizeEmailDate(record.receivedAt || record.date),
+    triggerId: record.triggerId || record.trigger?.id || null,
+    triggerName: record.triggerName || record.trigger?.name || '',
+    caseConfidence: Number.isFinite(Number(record.caseConfidence)) ? Number(record.caseConfidence) : null,
+    classification: record.classification || 'matched',
+    needsReview: Boolean(record.needsReview),
+    sourceReason: record.sourceReason || '',
+    raw: record.raw || {},
+  };
+
+  if (!payload.messageId || !payload.caseId) {
+    return null;
+  }
+
+  if (storageMode === 'postgres') {
+    const { rows } = await getPool().query(
+      `insert into case_emails (
+        message_id, thread_id, case_id, account_email, from_email, subject, snippet,
+        body_preview, received_at, trigger_id, trigger_name, case_confidence,
+        classification, needs_review, source_reason, raw, updated_at
+       ) values (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16::jsonb, now()
+       )
+       on conflict (message_id) do update set
+        thread_id = excluded.thread_id,
+        case_id = excluded.case_id,
+        account_email = excluded.account_email,
+        from_email = excluded.from_email,
+        subject = excluded.subject,
+        snippet = excluded.snippet,
+        body_preview = excluded.body_preview,
+        received_at = excluded.received_at,
+        trigger_id = excluded.trigger_id,
+        trigger_name = excluded.trigger_name,
+        case_confidence = excluded.case_confidence,
+        classification = excluded.classification,
+        needs_review = excluded.needs_review,
+        source_reason = excluded.source_reason,
+        raw = excluded.raw,
+        updated_at = now()
+       returning *`,
+      [
+        payload.messageId,
+        payload.threadId,
+        payload.caseId,
+        payload.accountEmail,
+        payload.fromEmail,
+        payload.subject,
+        payload.snippet,
+        payload.bodyPreview,
+        payload.receivedAt,
+        payload.triggerId,
+        payload.triggerName,
+        payload.caseConfidence,
+        payload.classification,
+        payload.needsReview,
+        payload.sourceReason,
+        JSON.stringify(payload.raw),
+      ],
+    );
+    return normalizeCaseEmailRow(rows[0]);
+  }
+
+  await db.read();
+  db.data = sanitizeData(db.data || {});
+  const now = new Date().toISOString();
+  const index = db.data.emails.findIndex((item) => item.messageId === payload.messageId);
+  const next = {
+    ...payload,
+    createdAt: index === -1 ? now : db.data.emails[index].createdAt,
+    updatedAt: now,
+  };
+  if (index === -1) {
+    db.data.emails.unshift(next);
+  } else {
+    db.data.emails[index] = { ...db.data.emails[index], ...next };
+  }
+  await write();
+  return next;
+};
+
+export const getCaseEmailRecords = async (caseId, limit = 50) => {
+  const targetCaseId = String(caseId || '').trim();
+  if (!targetCaseId) {
+    return [];
+  }
+
+  if (storageMode === 'postgres') {
+    const { rows } = await getPool().query(
+      `select * from case_emails
+       where case_id = $1
+       order by needs_review desc, received_at desc nulls last, updated_at desc
+       limit $2`,
+      [targetCaseId, limit],
+    );
+    return rows.map(normalizeCaseEmailRow);
+  }
+
+  await db.read();
+  db.data = sanitizeData(db.data || {});
+  return db.data.emails
+    .filter((item) => item.caseId === targetCaseId)
+    .sort((a, b) => {
+      if (Boolean(a.needsReview) !== Boolean(b.needsReview)) {
+        return Boolean(a.needsReview) ? -1 : 1;
+      }
+      return String(b.receivedAt || b.updatedAt || '').localeCompare(String(a.receivedAt || a.updatedAt || ''));
+    })
+    .slice(0, limit);
+};
+
+export const getCaseEmailByMessageId = async (messageId) => {
+  const id = String(messageId || '').trim();
+  if (!id) {
+    return null;
+  }
+
+  if (storageMode === 'postgres') {
+    const { rows } = await getPool().query(
+      'select * from case_emails where message_id = $1',
+      [id],
+    );
+    return rows[0] ? normalizeCaseEmailRow(rows[0]) : null;
+  }
+
+  await db.read();
+  db.data = sanitizeData(db.data || {});
+  return db.data.emails.find((item) => item.messageId === id) || null;
+};
+
+export const updateCaseEmailRecord = async (messageId, patch = {}) => {
+  const id = String(messageId || '').trim();
+  if (!id) {
+    return null;
+  }
+
+  const nextCaseId = patch.caseId ? String(patch.caseId).trim() : null;
+  const nextNeedsReview = patch.needsReview === undefined ? null : Boolean(patch.needsReview);
+  const nextClassification = patch.classification ? String(patch.classification).trim() : null;
+  const nextReason = patch.sourceReason ? String(patch.sourceReason).trim() : null;
+
+  if (storageMode === 'postgres') {
+    const { rows } = await getPool().query(
+      `update case_emails set
+        case_id = coalesce($2, case_id),
+        needs_review = coalesce($3, needs_review),
+        classification = coalesce($4, classification),
+        source_reason = coalesce($5, source_reason),
+        updated_at = now()
+       where message_id = $1
+       returning *`,
+      [id, nextCaseId, nextNeedsReview, nextClassification, nextReason],
+    );
+    return rows[0] ? normalizeCaseEmailRow(rows[0]) : null;
+  }
+
+  await db.read();
+  db.data = sanitizeData(db.data || {});
+  const index = db.data.emails.findIndex((item) => item.messageId === id);
+  if (index === -1) {
+    return null;
+  }
+
+  db.data.emails[index] = {
+    ...db.data.emails[index],
+    ...(nextCaseId ? { caseId: nextCaseId } : {}),
+    ...(nextNeedsReview === null ? {} : { needsReview: nextNeedsReview }),
+    ...(nextClassification ? { classification: nextClassification } : {}),
+    ...(nextReason ? { sourceReason: nextReason } : {}),
+    updatedAt: new Date().toISOString(),
+  };
+  await write();
+  return db.data.emails[index];
 };
