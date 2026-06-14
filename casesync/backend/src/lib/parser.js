@@ -20,6 +20,70 @@ const normalizeDate = (value) => {
   return Number.isNaN(date.getTime()) ? null : normalized;
 };
 
+const MONTHS = {
+  january: '01',
+  jan: '01',
+  february: '02',
+  feb: '02',
+  march: '03',
+  mar: '03',
+  april: '04',
+  apr: '04',
+  may: '05',
+  june: '06',
+  jun: '06',
+  july: '07',
+  jul: '07',
+  august: '08',
+  aug: '08',
+  september: '09',
+  sep: '09',
+  sept: '09',
+  october: '10',
+  oct: '10',
+  november: '11',
+  nov: '11',
+  december: '12',
+  dec: '12',
+};
+
+const pad2 = (value) => String(value || '').padStart(2, '0');
+
+const normalizeFlexibleDate = (value) => {
+  if (!value || typeof value !== 'string') {
+    return null;
+  }
+
+  const candidate = value.trim().replace(/,/g, '');
+  const iso = normalizeDate(candidate.replace(/[./]/g, '-'));
+  if (iso) {
+    return iso;
+  }
+
+  const slash = candidate.match(/\b(\d{1,2})[/-](\d{1,2})[/-]([12]\d{3})\b/);
+  if (slash) {
+    return normalizeDate(`${slash[3]}-${pad2(slash[1])}-${pad2(slash[2])}`);
+  }
+
+  const monthFirst = candidate.match(/\b([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?\s+([12]\d{3})\b/i);
+  if (monthFirst) {
+    const month = MONTHS[monthFirst[1].toLowerCase()];
+    if (month) {
+      return normalizeDate(`${monthFirst[3]}-${month}-${pad2(monthFirst[2])}`);
+    }
+  }
+
+  const dayFirst = candidate.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+)\s+([12]\d{3})\b/i);
+  if (dayFirst) {
+    const month = MONTHS[dayFirst[2].toLowerCase()];
+    if (month) {
+      return normalizeDate(`${dayFirst[3]}-${month}-${pad2(dayFirst[1])}`);
+    }
+  }
+
+  return null;
+};
+
 const normalizeTime = (value) => {
   if (!value || typeof value !== 'string') {
     return null;
@@ -159,9 +223,17 @@ const regexFromPattern = (pattern) => {
   }
 };
 
+const DEFAULT_CASE_ID_PATTERNS = [
+  String.raw`(?:case\s*(?:no\.?|number|#)|docket\s*(?:no\.?|number|#))[:#\s-]*([A-Z0-9][A-Z0-9-]{4,})`,
+  String.raw`\b(\d{2}[A-Z]{2,5}\d{4,})\b`,
+  String.raw`\b([A-Z]{2,5}-\d{4,}-[A-Z0-9-]+)\b`,
+  String.raw`\b([A-Z]{2,5}\d{6,})\b`,
+];
+
 const extractWithRegex = ({ body, subject, from, caseIdPatterns = [] }) => {
   const text = `${subject}\n${from}\n${body}`;
-  for (const pattern of caseIdPatterns) {
+  const patterns = [...caseIdPatterns, ...DEFAULT_CASE_ID_PATTERNS];
+  for (const pattern of patterns) {
     const regex = regexFromPattern(pattern);
     if (!regex) {
       continue;
@@ -207,10 +279,11 @@ const parseJson = (raw) => {
 const parseProofDateFromText = (text = '') => {
   const sample = text.toLowerCase();
   const patterns = [
-    /proof of service[^\d]*([12]\d{3}[/-]\d{1,2}[/-]\d{1,2})/i,
-    /served[^\d]*([12]\d{3}[/-]\d{1,2}[/-]\d{1,2})/i,
-    /pos[^\d]*([12]\d{3}[/-]\d{1,2}[/-]\d{1,2})/i,
-    /(\d{4}-\d{2}-\d{2}).{0,40}(electronic|email|e-?service)/i,
+    /proof of service.{0,80}?((?:[12]\d{3}[/-]\d{1,2}[/-]\d{1,2})|(?:\d{1,2}[/-]\d{1,2}[/-][12]\d{3})|(?:[a-z]+\s+\d{1,2}(?:st|nd|rd|th)?[,]?\s+[12]\d{3}))/i,
+    /date of service.{0,60}?((?:[12]\d{3}[/-]\d{1,2}[/-]\d{1,2})|(?:\d{1,2}[/-]\d{1,2}[/-][12]\d{3})|(?:[a-z]+\s+\d{1,2}(?:st|nd|rd|th)?[,]?\s+[12]\d{3}))/i,
+    /served.{0,60}?((?:[12]\d{3}[/-]\d{1,2}[/-]\d{1,2})|(?:\d{1,2}[/-]\d{1,2}[/-][12]\d{3})|(?:[a-z]+\s+\d{1,2}(?:st|nd|rd|th)?[,]?\s+[12]\d{3}))/i,
+    /pos.{0,60}?((?:[12]\d{3}[/-]\d{1,2}[/-]\d{1,2})|(?:\d{1,2}[/-]\d{1,2}[/-][12]\d{3})|(?:[a-z]+\s+\d{1,2}(?:st|nd|rd|th)?[,]?\s+[12]\d{3}))/i,
+    /((?:[12]\d{3}[/-]\d{1,2}[/-]\d{1,2})|(?:\d{1,2}[/-]\d{1,2}[/-][12]\d{3})|(?:[a-z]+\s+\d{1,2}(?:st|nd|rd|th)?[,]?\s+[12]\d{3})).{0,60}(electronic|email|e-?service|mail|personal|hand)/i,
   ];
 
   for (const pattern of patterns) {
@@ -219,7 +292,7 @@ const parseProofDateFromText = (text = '') => {
       continue;
     }
 
-    const date = normalizeDate((match[1] || match[0])?.replace(/[./]/g, '-'));
+    const date = normalizeFlexibleDate(match[1] || match[0]);
     if (!date) {
       continue;
     }
@@ -233,6 +306,21 @@ const parseProofDateFromText = (text = '') => {
   }
 
   return { date: null, method: null };
+};
+
+const hasDiscoveryServiceLanguage = (text = '') => {
+  return /\b(proof of service|date of service|served|serving|service of|e-?service|electronic service|mail service)\b/i.test(text)
+    && /\b(discovery|interrogator(?:y|ies)|requests?\s+for\s+(?:production|admissions?)|rfps?|rfas?|e[-\s]?rogs?|g[-\s]?rogs?)\b/i.test(text);
+};
+
+const isRuleBasedDiscoveryReady = ({ caseId, proofServiceDate, discoverySets, fullText }) => {
+  return Boolean(
+    caseId
+    && proofServiceDate
+    && Array.isArray(discoverySets)
+    && discoverySets.length > 0
+    && hasDiscoveryServiceLanguage(fullText),
+  );
 };
 
 const extractCaseIdConfidence = (matchValue) => {
@@ -320,6 +408,24 @@ export const parseEmail = async ({ subject = '', body = '', from = '', date = ''
   };
 
   try {
+    const ruleBasedReady = isRuleBasedDiscoveryReady({
+      caseId: data.caseId,
+      proofServiceDate: data.proofServiceDate,
+      discoverySets: data.discoverySets,
+      fullText,
+    });
+
+    if (ruleBasedReady) {
+      data = {
+        ...data,
+        summary: 'Rule-based discovery service match. CaseSync detected proof of service, discovery set labels, and a case identifier without AI.',
+        hasActionableDeadline: true,
+        caseConfidence: extractCaseIdConfidence(data.caseId),
+        estimated: false,
+      };
+      throw new Error('Rule-based parser completed');
+    }
+
     if (!process.env.ANTHROPIC_API_KEY) {
       throw new Error('Missing ANTHROPIC_API_KEY');
     }
@@ -359,7 +465,7 @@ export const parseEmail = async ({ subject = '', body = '', from = '', date = ''
           : [],
       };
     }
-  } catch {
+  } catch (error) {
     data.caseId = hintCaseId || data.caseId;
   }
 
