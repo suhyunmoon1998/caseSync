@@ -431,12 +431,15 @@ button:disabled {
 
 .toast {
   position: fixed;
-  right: 18px;
-  bottom: 18px;
-  padding: 10px 12px;
-  max-width: 360px;
-  z-index: 30;
+  right: 24px;
+  top: 92px;
+  padding: 12px 14px;
+  max-width: min(420px, calc(100vw - 32px));
+  z-index: 260;
   word-break: break-word;
+  animation: toastFloatIn 0.22s ease both;
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .notif-stack {
@@ -462,6 +465,18 @@ button:disabled {
 
 .notif-toast.updated {
   border-left-color: var(--warning);
+}
+
+@keyframes toastFloatIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .notif-toast-title {

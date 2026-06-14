@@ -29,7 +29,13 @@ const toastForError = (error) => {
   if (typeof error === 'string') {
     return error;
   }
-  return error.response?.data?.error || error.message || 'Request failed';
+  if (error.response?.data?.error) {
+    return error.response.data.error;
+  }
+  if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+    return 'Unable to reach CaseSync server. Please refresh or try again in a moment.';
+  }
+  return error.message || 'Request failed. Please try again.';
 };
 
 const notificationId = (item) => [
