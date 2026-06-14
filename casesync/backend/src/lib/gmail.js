@@ -1,4 +1,8 @@
 import { google } from 'googleapis';
+import mammoth from 'mammoth';
+import { PDFParse } from 'pdf-parse';
+
+const attachmentTextMaxChars = Number(process.env.ATTACHMENT_TEXT_MAX_CHARS || 60000);
 
 const decodeHtmlEntities = (value = '') => {
   return value
@@ -89,6 +93,157 @@ export const getEmailDetail = async (auth, messageId) => {
   return message.data;
 };
 
+const collectAttachmentParts = (node, collected = []) => {
+  if (!node) {
+    return collected;
+  }
+
+  const filename = String(node.filename || '').trim();
+  const attachmentId = node.body?.attachmentId || '';
+  const inlineData = node.body?.data || '';
+  if (filename && (attachmentId || inlineData)) {
+    collected.push({
+      filename,
+      mimeType: node.mimeType || '',
+      attachmentId,
+      inlineData,
+      size: node.body?.size || 0,
+    });
+  }
+
+  for (const part of node.parts || []) {
+    collectAttachmentParts(part, collected);
+  }
+
+  return collected;
+};
+
+const attachmentKind = (filename = '', mimeType = '') => {
+  const name = filename.toLowerCase();
+  const mime = mimeType.toLowerCase();
+  if (mime.includes('pdf') || name.endsWith('.pdf')) {
+    return 'pdf';
+  }
+  if (
+    mime.includes('wordprocessingml.document')
+    || mime.includes('msword')
+    || name.endsWith('.docx')
+  ) {
+    return 'docx';
+  }
+  if (mime.includes('text/plain') || name.endsWith('.txt') || name.endsWith('.csv')) {
+    return 'text';
+  }
+  if (mime.includes('text/html') || name.endsWith('.html') || name.endsWith('.htm')) {
+    return 'html';
+  }
+  return 'unsupported';
+};
+
+const attachmentDataBuffer = async (auth, messageId, part) => {
+  if (part.inlineData) {
+    return Buffer.from(normalizeBase64(part.inlineData), 'base64');
+  }
+
+  if (!part.attachmentId) {
+    return null;
+  }
+
+  const gmail = google.gmail({ version: 'v1', auth });
+  const { data } = await gmail.users.messages.attachments.get({
+    userId: 'me',
+    messageId,
+    id: part.attachmentId,
+  });
+
+  if (!data?.data) {
+    return null;
+  }
+
+  return Buffer.from(normalizeBase64(data.data), 'base64');
+};
+
+const extractAttachmentText = async (buffer, kind) => {
+  if (!buffer || !buffer.length) {
+    return '';
+  }
+
+  if (kind === 'pdf') {
+    const parser = new PDFParse({ data: buffer });
+    try {
+      const parsed = await parser.getText();
+      return parsed?.text || '';
+    } finally {
+      await parser.destroy();
+    }
+  }
+
+  if (kind === 'docx') {
+    const parsed = await mammoth.extractRawText({ buffer });
+    return parsed?.value || '';
+  }
+
+  if (kind === 'text') {
+    return buffer.toString('utf8');
+  }
+
+  if (kind === 'html') {
+    return decodeHtmlEntities(buffer.toString('utf8').replace(/<[^>]*>/g, '\n'));
+  }
+
+  return '';
+};
+
+const extractAttachments = async (auth, messageId, payload) => {
+  const parts = collectAttachmentParts(payload);
+  const attachments = [];
+  const textBlocks = [];
+
+  for (const part of parts) {
+    const kind = attachmentKind(part.filename, part.mimeType);
+    const item = {
+      filename: part.filename,
+      mimeType: part.mimeType,
+      size: part.size,
+      kind,
+      extracted: false,
+      textLength: 0,
+      error: '',
+    };
+
+    if (kind === 'unsupported') {
+      attachments.push(item);
+      continue;
+    }
+
+    try {
+      const buffer = await attachmentDataBuffer(auth, messageId, part);
+      const rawText = await extractAttachmentText(buffer, kind);
+      const text = String(rawText || '')
+        .replace(/\r/g, '')
+        .replace(/\u200b/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim()
+        .slice(0, attachmentTextMaxChars);
+
+      item.extracted = Boolean(text);
+      item.textLength = text.length;
+      if (text) {
+        textBlocks.push(`\n\n[Attachment: ${part.filename}]\n${text}`);
+      }
+    } catch (error) {
+      item.error = error.message || 'Attachment extraction failed';
+    }
+
+    attachments.push(item);
+  }
+
+  return {
+    attachments,
+    attachmentText: textBlocks.join('\n'),
+  };
+};
+
 const escapeQueryTerm = (value = '') => {
   return String(value).replace(/[\"']/g, '\\$&');
 };
@@ -151,6 +306,8 @@ export const fetchTriggerEmails = async (auth, trigger, maxResults = 50) => {
     const msg = await getEmailDetail(auth, messageId);
     const headers = msg.payload?.headers || [];
     const getHeader = (name) => headers.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
+    const body = extractText(msg.payload);
+    const attachmentResult = await extractAttachments(auth, messageId, msg.payload);
 
     resolved.push({
       id: messageId,
@@ -159,7 +316,10 @@ export const fetchTriggerEmails = async (auth, trigger, maxResults = 50) => {
       from: getHeader('from') || '(No From)',
       date: getHeader('date') || new Date().toISOString(),
       snippet: msg.snippet || '',
-      body: extractText(msg.payload),
+      body: `${body}${attachmentResult.attachmentText}`.trim(),
+      bodyText: body,
+      attachmentText: attachmentResult.attachmentText.trim(),
+      attachments: attachmentResult.attachments,
     });
   }
 
@@ -193,6 +353,8 @@ export const fetchCaseNumberEmails = async (auth, caseId, maxResults = 100) => {
     const msg = await getEmailDetail(auth, messageId);
     const headers = msg.payload?.headers || [];
     const getHeader = (name) => headers.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
+    const body = extractText(msg.payload);
+    const attachmentResult = await extractAttachments(auth, messageId, msg.payload);
 
     resolved.push({
       id: messageId,
@@ -201,7 +363,10 @@ export const fetchCaseNumberEmails = async (auth, caseId, maxResults = 100) => {
       from: getHeader('from') || '(No From)',
       date: getHeader('date') || new Date().toISOString(),
       snippet: msg.snippet || '',
-      body: extractText(msg.payload),
+      body: `${body}${attachmentResult.attachmentText}`.trim(),
+      bodyText: body,
+      attachmentText: attachmentResult.attachmentText.trim(),
+      attachments: attachmentResult.attachments,
     });
   }
 

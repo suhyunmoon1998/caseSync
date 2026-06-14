@@ -321,6 +321,8 @@ const storeCaseEmail = async ({
       from: email.from,
       date: email.date,
       snippet: email.snippet,
+      attachments: email.attachments || [],
+      attachmentTextLength: email.attachmentText?.length || 0,
       parsedSummary: parsed.summary || '',
       proofServiceDate: parsed.proofServiceDate || '',
       proofServiceMethod: parsed.proofServiceMethod || '',
