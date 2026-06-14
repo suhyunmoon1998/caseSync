@@ -319,7 +319,7 @@ export default function App() {
         </section>
 
         <section className="clean-section">
-          <Calendar cases={cases} />
+          <Calendar cases={cases} accounts={accounts} onManualCaseCreated={loadAll} />
         </section>
 
         <section className="clean-section">

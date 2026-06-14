@@ -91,6 +91,11 @@ export const confirmCase = async (caseId) => {
   return response.data;
 };
 
+export const createManualCase = async (payload) => {
+  const response = await client.post('/api/cases/manual', payload);
+  return response.data;
+};
+
 export const getCalendars = async (email) => {
   const response = await client.get('/api/calendar/list', { params: { email } });
   return response.data.calendars || [];

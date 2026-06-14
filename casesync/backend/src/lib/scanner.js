@@ -609,6 +609,92 @@ export const importCalendarCasesToDb = async () => {
   return { imported };
 };
 
+export const createManualCase = async ({
+  accountEmail = '',
+  calendarId = defaultCalendarId,
+  caseId = '',
+  caseTitle = '',
+  proofServiceDate = '',
+  proofServiceMethod = 'electronic',
+  discoverySets = [],
+}) => {
+  const normalizedCaseId = safeCaseId(caseId);
+  if (!isValidCaseId(normalizedCaseId)) {
+    throw new Error('A valid case ID is required');
+  }
+
+  const responsePackage = buildResponsePackage({
+    proofServiceDate,
+    proofServiceMethod,
+    discoverySets,
+    caseId: normalizedCaseId,
+    caseTitle: caseTitle || normalizedCaseId,
+  });
+
+  if (!responsePackage?.responseDeadline) {
+    throw new Error('A valid Proof of Service date is required');
+  }
+
+  const accounts = await getAllAccountsRaw();
+  const account = accountEmail
+    ? accounts.find((entry) => entry.email === accountEmail)
+    : accounts[0];
+
+  if (!account?.tokens) {
+    throw new Error('Connected Google account not found');
+  }
+
+  const auth = getAuthClient(account.tokens, {
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    redirectUri: process.env.GOOGLE_REDIRECT_URI,
+  });
+
+  const targetCalendarId = calendarId || defaultCalendarId;
+  const deadlines = [responsePackage.responseDeadline];
+  const payload = {
+    caseId: normalizedCaseId,
+    caseTitle: caseTitle || normalizedCaseId,
+    summary: 'Manually created deadline package.',
+    status: 'active',
+    trigger: null,
+    triggerName: 'Manual calendar entry',
+    deadlines,
+    emailId: '',
+    sourceEmail: account.email,
+    sourceName: 'Manual calendar entry',
+    caseConfidence: 100,
+    estimated: false,
+    proofServiceDate,
+    proofServiceMethod: responsePackage.proofServiceMethod,
+    discoverySets: responsePackage.discoverySets,
+    responseDeadlineDate: responsePackage.responseDeadlineDate,
+    responsePackage,
+    raw: null,
+  };
+
+  const existing = await findEventByCaseId(auth, targetCalendarId, normalizedCaseId);
+  const event = existing?.id
+    ? await updateCaseEvent(auth, targetCalendarId, existing.id, payload)
+    : await createCaseEvent(auth, targetCalendarId, payload);
+
+  await upsertRelatedCaseEvents(auth, targetCalendarId, payload, event);
+  const record = await upsertCaseRecord({
+    ...payload,
+    id: event.id,
+    htmlLink: event.htmlLink || '',
+    description: event.description || '',
+    lastUpdated: event.extendedProperties?.private?.lastUpdated || event.updated || new Date().toISOString(),
+    sourceAccount: account.email,
+    sourceCalendarId: targetCalendarId,
+    sourceEventSummary: event.summary || '',
+    start: event.start || null,
+    end: event.end || null,
+  });
+
+  return { case: toDeadlineUi(record), calendarEventUrl: event.htmlLink || '' };
+};
+
 export const getCaseRecords = async (_targetAccountEmail = null) => {
   const stored = await getCaseRecordsFromDb();
   return stored.map(toDeadlineUi);

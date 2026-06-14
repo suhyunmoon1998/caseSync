@@ -4,6 +4,7 @@ import {
   updateCaseById,
   deleteCaseById,
   importCalendarCasesToDb,
+  createManualCase,
 } from '../lib/scanner.js';
 
 const router = express.Router();
@@ -25,6 +26,16 @@ router.post('/import-calendar', async (_req, res) => {
   } catch (error) {
     console.error('Import calendar cases failed', error);
     res.status(500).json({ error: 'Failed to import calendar cases' });
+  }
+});
+
+router.post('/manual', async (req, res) => {
+  try {
+    const result = await createManualCase(req.body || {});
+    res.json({ success: true, ...result });
+  } catch (error) {
+    console.error('Create manual case failed', error);
+    res.status(400).json({ error: error.message || 'Failed to create manual calendar entry' });
   }
 });
 

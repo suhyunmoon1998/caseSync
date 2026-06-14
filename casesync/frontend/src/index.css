@@ -2024,8 +2024,41 @@ textarea,
   white-space: pre-wrap;
 }
 
+/* Manual Google Calendar entry */
+.manual-calendar-card {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.manual-calendar-card h3 {
+  margin-bottom: 4px;
+}
+
+.manual-calendar-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.manual-field {
+  display: grid;
+  gap: 6px;
+}
+
+.manual-calendar-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 @media (max-width: 860px) {
   .case-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .manual-calendar-grid {
     grid-template-columns: 1fr;
   }
 }
