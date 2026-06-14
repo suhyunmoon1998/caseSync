@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle2, ExternalLink, Eye, Mail, Pencil, RefreshCcw, Trash2 } from 'lucide-react';
+import { CheckCircle2, ExternalLink, Mail, RefreshCcw, Trash2 } from 'lucide-react';
 import { differenceInCalendarDays, format, parseISO } from 'date-fns';
 import { getCaseEmails, updateCaseEmail } from '../utils/api';
 
@@ -256,7 +256,7 @@ export default function CaseCard({
 
   return (
     <div
-      className="card"
+      className={`card case-flip-card${expanded ? ' is-flipped' : ''}`}
       role="button"
       tabIndex={0}
       onClick={(event) => {
@@ -275,215 +275,188 @@ export default function CaseCard({
         }
       }}
       style={{
-        position: 'relative',
-        borderLeft: `6px solid ${caseColor}`,
         '--case-color': caseColor,
+        '--deadline-progress': `${Math.round(progress * 100)}%`,
+        '--deadline-color': priority.color,
       }}
     >
-      <div className="case-card__header">
-        <div>
-          <h3><span className="case-card__color-dot" />{caseId}</h3>
-          <p className="meta">{caseLabel}</p>
-        </div>
-        <div className="case-card__header-meta">
-          <span className={statusColor(status)}>{titleCaseStatus(status)}</span>
-          {est ? <span className={est.className}>{est.label}</span> : null}
-          {showEstimatedTag ? <span className="badge badge-medium">Estimated</span> : null}
-        </div>
-      </div>
-
-      <div className="case-card__deadline">
-        <div className="case-card__deadline-row">
-          <span className={priority.className} style={priority.style}>
-            {priority.text}
-          </span>
-          <span className="meta">
-            {dueText || 'No deadline yet'}
-          </span>
-        </div>
-        <div className="case-deadline-track" style={{
-          '--deadline-progress': `${Math.round(progress * 100)}%`,
-          '--deadline-color': priority.color,
-        }}>
-          <span />
-        </div>
-      </div>
-
-      <div className="case-card__meta">
-        <div className="meta">{caseItem.triggerName || 'No trigger set'}</div>
-        <div className="meta">Last updated {lastUpdatedText}</div>
-      </div>
-
-      <div className="case-card__actions">
-        <button className="btn-ghost" onClick={() => onExpand(caseItem.id)}>
-          {expanded ? <Eye size={14} /> : <Pencil size={14} />}
-          <span>{expanded ? 'Hide details' : 'View details'}</span>
-        </button>
-        <button className="btn-danger" onClick={() => onDelete(caseItem.caseId)}>
-          <Trash2 size={14} />
-          <span>Delete</span>
-        </button>
-      </div>
-
-      {expanded ? (
-        <div className="case-card__section">
-          <div className="case-summary-grid">
-            <div className="case-summary-item">
-              <span>Proof of Service</span>
-              <strong>{caseItem.proofServiceDate || 'Not detected'}</strong>
-              <small>{caseItem.proofServiceMethod || 'method unknown'}</small>
-            </div>
-            <div className="case-summary-item">
-              <span>Response deadline</span>
-              <strong>{caseItem.responseDeadlineDate || dueText || 'Not detected'}</strong>
-              <small>California discovery response deadline</small>
-            </div>
-            <div className="case-summary-item">
-              <span>Discovery sets</span>
-              <strong>{discoverySets}</strong>
-              <small>Detected from email text</small>
-            </div>
+      <div className="case-flip-inner">
+        <section className="case-flip-face case-flip-front" aria-label={`Open ${caseLabel}`}>
+          <div className="case-folder-mark" />
+          <div className="case-folder-body">
+            <p className="case-folder-kicker">Case folder</p>
+            <h3>{caseLabel}</h3>
+            <span className="case-folder-number">{caseId}</span>
           </div>
-
-          <div style={{ marginBottom: 10 }}>
-            <h4 style={{ margin: '0 0 6px 0' }}>Deadlines</h4>
-            <div className="timeline">
-              {(caseItem.deadlines || []).length === 0 ? (
-                <div className="meta">No deadline details available.</div>
-              ) : (
-                caseItem.deadlines.map((item) => (
-                  <div className="timeline-item" key={`${item.date}-${item.time || 'all'}-${item.action}`}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                      <div>
-                        <strong>{item.date}</strong>
-                        {item.time ? <span className="meta">{` ${item.time}`}</span> : null}
-                        <div>{item.action}</div>
-                      </div>
-                      <span className={`badge badge-${item.priority || 'medium'}`}>{item.priority || 'medium'}</span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+          <div className="case-folder-footer">
+            <span className={statusColor(status)}>{titleCaseStatus(status)}</span>
+            <span className="case-folder-hint">Click to flip</span>
           </div>
+        </section>
 
-          <div style={{ marginBottom: 12 }} className="case-card__section">
-            <h4 style={{ margin: '0 0 6px 0' }}>Summary</h4>
-            <div className="meta">{summaryText}</div>
-          </div>
-
-          <div className="case-card__section case-emails">
-            <div className="case-emails__head">
-              <h4>
-                <Mail size={15} />
-                Related emails
-              </h4>
-              <span className="hint-chip">{relatedEmails.length} linked</span>
-            </div>
-
-            {emailLoading ? (
-              <div className="meta">Loading related emails...</div>
-            ) : null}
-
-            {emailError ? (
-              <div className="case-email-error">{emailError}</div>
-            ) : null}
-
-            {!emailLoading && !emailError && relatedEmails.length === 0 ? (
-              <div className="case-email-empty">
-                No related emails saved yet. Run a scan to attach matched Gmail messages to this case.
+        <section className="case-flip-face case-flip-back" aria-label={`Summary for ${caseLabel}`}>
+          <div className="case-flip-scroll">
+            <div className="case-back-head">
+              <div>
+                <p className="case-folder-kicker">Summary</p>
+                <h3><span className="case-card__color-dot" />{caseLabel}</h3>
+                <div className="meta">{caseId}</div>
               </div>
-            ) : null}
+              <div className="case-card__header-meta">
+                <span className={statusColor(status)}>{titleCaseStatus(status)}</span>
+                {est ? <span className={est.className}>{est.label}</span> : null}
+                {showEstimatedTag ? <span className="badge badge-medium">Estimated</span> : null}
+              </div>
+            </div>
 
-            {relatedEmails.length > 0 ? (
-              <div className="case-email-list">
-                {relatedEmails.map((email) => (
-                  <article
-                    className={`case-email-item${email.needsReview ? ' needs-review' : ''}`}
-                    key={email.messageId}
-                  >
-                    <div className="case-email-top">
-                      <div>
-                        <strong className="case-email-subject">{email.subject}</strong>
-                        <div className="meta">
-                          {email.fromEmail || 'Unknown sender'} · {formatEmailDate(email.receivedAt)}
+            <div className="case-card__deadline">
+              <div className="case-card__deadline-row">
+                <span className={priority.className} style={priority.style}>{priority.text}</span>
+                <span className="meta">{dueText || 'No deadline yet'}</span>
+              </div>
+              <div className="case-deadline-track">
+                <span />
+              </div>
+            </div>
+
+            <div className="case-summary-grid">
+              <div className="case-summary-item">
+                <span>Proof of Service</span>
+                <strong>{caseItem.proofServiceDate || 'Not detected'}</strong>
+                <small>{caseItem.proofServiceMethod || 'method unknown'}</small>
+              </div>
+              <div className="case-summary-item">
+                <span>Response deadline</span>
+                <strong>{caseItem.responseDeadlineDate || dueText || 'Not detected'}</strong>
+                <small>California discovery response deadline</small>
+              </div>
+              <div className="case-summary-item">
+                <span>Discovery sets</span>
+                <strong>{discoverySets}</strong>
+                <small>Detected from email text</small>
+              </div>
+            </div>
+
+            <div className="case-card__section compact-summary">
+              <h4>Case summary</h4>
+              <div className="meta">{summaryText}</div>
+              <div className="case-card__meta">
+                <span className="meta">{caseItem.triggerName || 'Manual case folder'}</span>
+                <span className="meta">Last updated {lastUpdatedText}</span>
+              </div>
+            </div>
+
+            <div className="case-card__section">
+              <h4>Deadlines</h4>
+              <div className="timeline">
+                {(caseItem.deadlines || []).length === 0 ? (
+                  <div className="meta">No deadline details available.</div>
+                ) : (
+                  caseItem.deadlines.map((item) => (
+                    <div className="timeline-item" key={`${item.date}-${item.time || 'all'}-${item.action}`}>
+                      <div className="timeline-meta">
+                        <div>
+                          <strong>{item.date}</strong>
+                          {item.time ? <span className="meta">{` ${item.time}`}</span> : null}
+                          <div>{item.action}</div>
+                        </div>
+                        <span className={`badge badge-${item.priority || 'medium'}`}>{item.priority || 'medium'}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="case-card__section case-emails">
+              <div className="case-emails__head">
+                <h4><Mail size={15} />Related emails</h4>
+                <span className="hint-chip">{relatedEmails.length} linked</span>
+              </div>
+
+              {emailLoading ? <div className="meta">Loading related emails...</div> : null}
+              {emailError ? <div className="case-email-error">{emailError}</div> : null}
+              {!emailLoading && !emailError && relatedEmails.length === 0 ? (
+                <div className="case-email-empty">No related emails saved yet. Run a scan to attach matched Gmail messages to this case.</div>
+              ) : null}
+
+              {relatedEmails.length > 0 ? (
+                <div className="case-email-list">
+                  {relatedEmails.map((email) => (
+                    <article className={`case-email-item${email.needsReview ? ' needs-review' : ''}`} key={email.messageId}>
+                      <div className="case-email-top">
+                        <div>
+                          <strong className="case-email-subject">{email.subject}</strong>
+                          <div className="meta">{email.fromEmail || 'Unknown sender'} · {formatEmailDate(email.receivedAt)}</div>
+                        </div>
+                        <div className="case-email-badges">
+                          {email.needsReview ? <span className="badge badge-medium">Review needed</span> : null}
+                          {typeof email.caseConfidence === 'number' ? <span className="badge badge-low">{email.caseConfidence}%</span> : null}
+                          <span className="badge badge-closed">{email.classification}</span>
                         </div>
                       </div>
-                      <div className="case-email-badges">
-                        {email.needsReview ? <span className="badge badge-medium">Review needed</span> : null}
-                        {typeof email.caseConfidence === 'number' ? (
-                          <span className="badge badge-low">{email.caseConfidence}%</span>
+
+                      <p className="case-email-preview">{email.bodyPreview || email.snippet || 'No preview available.'}</p>
+                      {email.sourceReason ? <div className="meta">{email.sourceReason}</div> : null}
+
+                      <div className="case-email-actions">
+                        {email.needsReview ? (
+                          <button className="btn-success" type="button" onClick={() => markEmailReviewed(email.messageId)}>
+                            <CheckCircle2 size={13} />Mark reviewed
+                          </button>
                         ) : null}
-                        <span className="badge badge-closed">{email.classification}</span>
-                      </div>
-                    </div>
-
-                    <p className="case-email-preview">
-                      {email.bodyPreview || email.snippet || 'No preview available.'}
-                    </p>
-
-                    {email.sourceReason ? (
-                      <div className="meta">{email.sourceReason}</div>
-                    ) : null}
-
-                    <div className="case-email-actions">
-                      {email.needsReview ? (
-                        <button className="btn-success" type="button" onClick={() => markEmailReviewed(email.messageId)}>
-                          <CheckCircle2 size={13} />
-                          Mark reviewed
+                        <button className="btn-ghost" type="button" onClick={() => moveEmailToCase(email.messageId)}>
+                          Move to case
                         </button>
-                      ) : null}
-                      <button className="btn-ghost" type="button" onClick={() => moveEmailToCase(email.messageId)}>
-                        Move to case
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            {fullNotes ? (
+              <details className="case-raw-notes">
+                <summary>Full calendar notes</summary>
+                <pre>{fullNotes}</pre>
+              </details>
             ) : null}
+
+            <div className="case-back-controls">
+              <label className="meta" htmlFor={`case-status-${caseItem.id}`}>Status</label>
+              <select
+                id={`case-status-${caseItem.id}`}
+                className="input"
+                value={status}
+                onChange={(event) => onStatusChange(caseItem.caseId, event.target.value)}
+              >
+                <option value="active">In progress</option>
+                <option value="pending">Pending</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+
+            <div className="case-card__actions">
+              <button className="btn-ghost" type="button" onClick={() => onExpand(caseItem.caseId)}>
+                Flip back
+              </button>
+              {caseItem.htmlLink ? (
+                <a href={caseItem.htmlLink} target="_blank" rel="noreferrer" className="btn-ghost">
+                  <ExternalLink size={14} />Open calendar
+                </a>
+              ) : null}
+              <button className="btn-ghost" type="button" onClick={() => onStatusChange(caseItem.caseId, 'active')} title="Touch for quick refresh">
+                <RefreshCcw size={12} />Mark active
+              </button>
+              <button className="btn-danger" type="button" onClick={() => onDelete(caseItem.caseId)}>
+                <Trash2 size={14} />Delete
+              </button>
+            </div>
+
+            {caseItem.sourceCalendarId ? <div className="meta">Calendar: {caseItem.sourceCalendarId}</div> : null}
           </div>
-
-          {fullNotes ? (
-            <details className="case-raw-notes">
-              <summary>Full calendar notes</summary>
-              <pre>{fullNotes}</pre>
-            </details>
-          ) : null}
-
-          <div style={{ display: 'grid', gap: 8 }}>
-            <label className="meta" htmlFor={`case-status-${caseItem.id}`}>Status</label>
-            <select
-              id={`case-status-${caseItem.id}`}
-              className="input"
-              value={status}
-              onChange={(event) => onStatusChange(caseItem.caseId, event.target.value)}
-            >
-              <option value="active">In progress</option>
-              <option value="pending">Pending</option>
-              <option value="closed">Closed</option>
-            </select>
-          </div>
-
-          {caseItem.htmlLink ? (
-            <a href={caseItem.htmlLink} target="_blank" rel="noreferrer" className="btn-ghost" style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <ExternalLink size={14} /> Open calendar
-            </a>
-          ) : null}
-
-          {caseItem.sourceCalendarId ? <div className="meta">Calendar: {caseItem.sourceCalendarId}</div> : null}
-
-          <div className="case-card__actions">
-            <button
-              className="btn-ghost"
-              onClick={() => onStatusChange(caseItem.caseId, 'active')}
-              title="Touch for quick refresh"
-            >
-              <RefreshCcw size={12} />
-              <span>Mark active</span>
-            </button>
-          </div>
-        </div>
-      ) : null}
+        </section>
+      </div>
     </div>
   );
 }
