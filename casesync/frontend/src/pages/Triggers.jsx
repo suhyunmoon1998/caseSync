@@ -41,13 +41,12 @@ export default function Triggers({ accounts, onSaved }) {
     try {
       const next = await getTriggers();
       setTriggers(next);
-      await onSaved?.();
     } catch {
       setError('Failed to load triggers');
     } finally {
       setLoading(false);
     }
-  }, [onSaved]);
+  }, []);
 
   useEffect(() => {
     void refresh();
@@ -150,6 +149,7 @@ export default function Triggers({ accounts, onSaved }) {
       }
       resetForm();
       await refresh();
+      await onSaved?.();
     } catch (error) {
       setError(error.response?.data?.error || 'Failed to save trigger');
     } finally {
@@ -165,6 +165,7 @@ export default function Triggers({ accounts, onSaved }) {
     try {
       await deleteTrigger(id);
       await refresh();
+      await onSaved?.();
       if (editing === id) {
         resetForm();
       }
@@ -179,6 +180,7 @@ export default function Triggers({ accounts, onSaved }) {
     try {
       await toggleTrigger(id);
       await refresh();
+      await onSaved?.();
     } catch {
       setError('Failed to toggle trigger');
     }
