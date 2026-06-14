@@ -2062,3 +2062,39 @@ textarea,
     grid-template-columns: 1fr;
   }
 }
+
+/* Right-click calendar quick add */
+.quick-add-popover {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(0, 0, 0, 0.09);
+  border-radius: 22px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.16);
+  display: grid;
+  gap: 14px;
+  max-width: min(360px, calc(100vw - 24px));
+  padding: 16px;
+  position: fixed;
+  width: 360px;
+  z-index: 320;
+}
+
+.quick-add-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.quick-add-head strong,
+.quick-add-head span {
+  display: block;
+}
+
+.quick-add-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.calendar-day {
+  cursor: context-menu;
+}

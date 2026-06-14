@@ -85,6 +85,7 @@ export default function Calendar({ cases = [], accounts = [], onManualCaseCreate
   });
   const [manualStatus, setManualStatus] = useState('');
   const [manualLoading, setManualLoading] = useState(false);
+  const [quickAdd, setQuickAdd] = useState(null);
   const today = new Date();
   const activeRange = RANGE_OPTIONS.find((item) => item.key === rangeKey) || RANGE_OPTIONS[1];
   const rangeEnd = getRangeEnd(today, activeRange.key);
@@ -93,6 +94,26 @@ export default function Calendar({ cases = [], accounts = [], onManualCaseCreate
 
   const updateManualForm = (field, value) => {
     setManualForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const openQuickAdd = (event, dateKey) => {
+    event.preventDefault();
+    setManualStatus('');
+    setManualForm((prev) => ({
+      ...prev,
+      proofServiceDate: dateKey,
+      accountEmail: prev.accountEmail || accountOptions[0] || '',
+    }));
+    setQuickAdd({
+      date: dateKey,
+      x: Math.min(event.clientX, window.innerWidth - 380),
+      y: Math.min(event.clientY, window.innerHeight - 360),
+    });
+  };
+
+  const closeQuickAdd = () => {
+    setQuickAdd(null);
+    setManualStatus('');
   };
 
   const submitManualCase = async () => {
@@ -122,6 +143,7 @@ export default function Calendar({ cases = [], accounts = [], onManualCaseCreate
         proofServiceMethod: 'electronic',
         discoverySets: 'RFPs',
       }));
+      setQuickAdd(null);
       await onManualCaseCreated?.();
     } catch (error) {
       setManualStatus(error.response?.data?.error || error.message || 'Failed to add calendar entry.');
@@ -223,91 +245,79 @@ export default function Calendar({ cases = [], accounts = [], onManualCaseCreate
         </div>
       </div>
 
-      <div className="card manual-calendar-card">
-        <div>
-          <h3>Add directly to Google Calendar</h3>
-          <p className="meta">Create a Proof of Service response deadline package without waiting for an email scan.</p>
-        </div>
-        <div className="manual-calendar-grid">
-          {accountOptions.length > 0 ? (
+      {quickAdd ? (
+        <div className="quick-add-popover" style={{ left: quickAdd.x, top: quickAdd.y }}>
+          <div className="quick-add-head">
+            <div>
+              <strong>Add schedule</strong>
+              <span className="meta">Proof served on {quickAdd.date}</span>
+            </div>
+            <button className="btn-icon" type="button" onClick={closeQuickAdd}>x</button>
+          </div>
+          <div className="quick-add-grid">
+            {accountOptions.length > 0 ? (
+              <label className="manual-field">
+                <span className="meta">Google account</span>
+                <select
+                  className="input"
+                  value={manualForm.accountEmail || accountOptions[0] || ''}
+                  onChange={(event) => updateManualForm('accountEmail', event.target.value)}
+                >
+                  {accountOptions.map((email) => (
+                    <option key={email} value={email}>{email}</option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <label className="manual-field">
-              <span className="meta">Google account</span>
+              <span className="meta">Case ID</span>
+              <input
+                className="input"
+                value={manualForm.caseId}
+                onChange={(event) => updateManualForm('caseId', event.target.value)}
+                placeholder="24STCV12345"
+                autoFocus
+              />
+            </label>
+            <label className="manual-field">
+              <span className="meta">Case title</span>
+              <input
+                className="input"
+                value={manualForm.caseTitle}
+                onChange={(event) => updateManualForm('caseTitle', event.target.value)}
+                placeholder="Optional"
+              />
+            </label>
+            <label className="manual-field">
+              <span className="meta">Service method</span>
               <select
                 className="input"
-                value={manualForm.accountEmail || accountOptions[0] || ''}
-                onChange={(event) => updateManualForm('accountEmail', event.target.value)}
+                value={manualForm.proofServiceMethod}
+                onChange={(event) => updateManualForm('proofServiceMethod', event.target.value)}
               >
-                {accountOptions.map((email) => (
-                  <option key={email} value={email}>{email}</option>
-                ))}
+                <option value="electronic">Electronic (+32 days)</option>
+                <option value="personal">Personal (+30 days)</option>
+                <option value="mail">Mail (+35 days)</option>
               </select>
             </label>
-          ) : null}
-          <label className="manual-field">
-            <span className="meta">Case ID</span>
-            <input
-              className="input"
-              value={manualForm.caseId}
-              onChange={(event) => updateManualForm('caseId', event.target.value)}
-              placeholder="24STCV12345"
-            />
-          </label>
-          <label className="manual-field">
-            <span className="meta">Case title</span>
-            <input
-              className="input"
-              value={manualForm.caseTitle}
-              onChange={(event) => updateManualForm('caseTitle', event.target.value)}
-              placeholder="Optional"
-            />
-          </label>
-          <label className="manual-field">
-            <span className="meta">Proof of Service date</span>
-            <input
-              className="input"
-              type="date"
-              value={manualForm.proofServiceDate}
-              onChange={(event) => updateManualForm('proofServiceDate', event.target.value)}
-            />
-          </label>
-          <label className="manual-field">
-            <span className="meta">Service method</span>
-            <select
-              className="input"
-              value={manualForm.proofServiceMethod}
-              onChange={(event) => updateManualForm('proofServiceMethod', event.target.value)}
-            >
-              <option value="electronic">Electronic (+32 days)</option>
-              <option value="personal">Personal (+30 days)</option>
-              <option value="mail">Mail (+35 days)</option>
-            </select>
-          </label>
-          <label className="manual-field">
-            <span className="meta">Discovery sets</span>
-            <input
-              className="input"
-              value={manualForm.discoverySets}
-              onChange={(event) => updateManualForm('discoverySets', event.target.value)}
-              placeholder="E-rogs, G-rogs, RFPs, RFAs"
-            />
-          </label>
-          <label className="manual-field">
-            <span className="meta">Calendar ID</span>
-            <input
-              className="input"
-              value={manualForm.calendarId}
-              onChange={(event) => updateManualForm('calendarId', event.target.value)}
-              placeholder="primary"
-            />
-          </label>
+            <label className="manual-field">
+              <span className="meta">Discovery sets</span>
+              <input
+                className="input"
+                value={manualForm.discoverySets}
+                onChange={(event) => updateManualForm('discoverySets', event.target.value)}
+                placeholder="E-rogs, G-rogs, RFPs, RFAs"
+              />
+            </label>
+          </div>
+          <div className="manual-calendar-actions">
+            <button className="btn-primary" type="button" onClick={submitManualCase} disabled={manualLoading}>
+              {manualLoading ? 'Adding...' : 'Add to Google Calendar'}
+            </button>
+            {manualStatus ? <span className="meta">{manualStatus}</span> : null}
+          </div>
         </div>
-        <div className="manual-calendar-actions">
-          <button className="btn-primary" type="button" onClick={submitManualCase} disabled={manualLoading}>
-            {manualLoading ? 'Adding...' : 'Add to Google Calendar'}
-          </button>
-          {manualStatus ? <span className="meta">{manualStatus}</span> : null}
-        </div>
-      </div>
+      ) : null}
 
       <div className="stats">
         <div className="stat">
@@ -374,7 +384,8 @@ export default function Calendar({ cases = [], accounts = [], onManualCaseCreate
                       <div
                         key={key}
                         className={`calendar-day ${isCurrentMonth && isWithinRange ? '' : 'calendar-day--outside'} ${isToday ? 'calendar-day--today' : ''} ${dayUrgency && isWithinRange ? `calendar-day--${dayUrgency}` : ''}`}
-                        title={dayItems.map((item) => `${item.label} (${item.urgency.label})`).join('\n') || 'No deadlines'}
+                        title={dayItems.map((item) => `${item.label} (${item.urgency.label})`).join('\n') || 'Right-click to add a schedule'}
+                        onContextMenu={(event) => openQuickAdd(event, key)}
                       >
                         <div className="calendar-day-number">{format(day, 'd')}</div>
                         {dayItems.length > 0 ? (
