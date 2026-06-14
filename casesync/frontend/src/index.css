@@ -2721,3 +2721,125 @@ textarea,
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Canva shell cleanup pass: calmer hierarchy, fewer competing surfaces. */
+.app-shell-clean {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(0, 113, 227, 0.08), transparent 26%),
+    radial-gradient(circle at 96% 0%, rgba(255, 190, 48, 0.07), transparent 24%),
+    linear-gradient(180deg, #f7f8fb 0%, #eef1f6 100%);
+}
+
+.clean-header {
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.055);
+}
+
+.clean-header .notification-bell span:first-child {
+  font-size: 0;
+}
+
+.clean-header .notification-bell span:first-child::after {
+  content: "Alerts";
+  font-size: 13px;
+}
+
+.canvas-workspace {
+  gap: 14px;
+}
+
+.canvas-sidebar,
+.canvas-stage {
+  border-radius: 22px;
+}
+
+.canvas-sidebar {
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.055);
+  gap: 12px;
+  padding: 12px;
+}
+
+.canvas-sidebar-title {
+  padding-bottom: 10px;
+}
+
+.canvas-sidebar-title strong {
+  font-size: 18px;
+}
+
+.canvas-nav-item {
+  border-radius: 14px;
+  min-height: 50px;
+  padding: 9px 10px;
+}
+
+.canvas-nav-item span {
+  font-size: 14px;
+}
+
+.canvas-sidebar-footer .connected-pill {
+  justify-content: center;
+  max-width: none;
+  text-align: center;
+}
+
+.canvas-stage {
+  background: rgba(255, 255, 255, 0.72);
+  padding: 14px;
+}
+
+.canvas-stage-head {
+  border-radius: 18px;
+  margin-bottom: 12px;
+  padding: 14px;
+}
+
+.canvas-stage-head .eyebrow {
+  margin-bottom: 4px;
+}
+
+.canvas-stage-head h1 {
+  font-size: clamp(28px, 2.8vw, 42px);
+  margin-bottom: 4px;
+}
+
+.canvas-stage-head .hero-copy {
+  max-width: 680px;
+}
+
+.canvas-view > .page-enter > .topbar:first-child,
+.canvas-view > .clean-section > .page-enter > .topbar:first-child {
+  display: none;
+}
+
+.canvas-view .card {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.045);
+}
+
+.canvas-view .layout-grid.two-col {
+  gap: 12px;
+}
+
+.canvas-view .stats {
+  gap: 9px;
+}
+
+.canvas-view .stat {
+  min-height: 82px;
+}
+
+.canvas-view .calendar-toolbar {
+  margin-bottom: 10px;
+}
+
+.canvas-view .cases-grid {
+  gap: 12px;
+}
+
+.case-card__header h3 {
+  font-size: 16px;
+}
+
+.notification-panel.header-notification-panel {
+  width: min(360px, calc(100vw - 32px));
+}
