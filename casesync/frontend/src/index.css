@@ -1807,6 +1807,63 @@ textarea,
   padding: 20px;
 }
 
+.app-shell-clean .calendar-toolbar {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-radius: 22px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.05);
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 10px;
+}
+
+.app-shell-clean .calendar-range-group {
+  background: rgba(245, 245, 247, 0.88);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 999px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 5px;
+}
+
+.app-shell-clean .calendar-range-chip {
+  border: 0;
+  box-shadow: none;
+  min-height: 36px;
+  padding: 0 14px;
+  text-transform: none;
+}
+
+.app-shell-clean .calendar-range-chip.is-active {
+  background: #0071e3;
+  color: #fff;
+}
+
+.app-shell-clean .calendar-range-summary {
+  flex: 0 1 auto;
+  padding-right: 8px;
+  text-align: right;
+}
+
+.app-shell-clean .calendar-months {
+  max-height: 620px;
+  overflow: auto;
+  padding-right: 4px;
+  scroll-behavior: smooth;
+}
+
+.app-shell-clean .calendar-month {
+  scroll-margin-top: 12px;
+}
+
+.app-shell-clean .calendar-month + .calendar-month {
+  margin-top: 18px;
+}
+
 .app-shell-clean .topbar {
   margin-top: 4px;
 }
@@ -1822,6 +1879,15 @@ textarea,
 
   .app-shell-clean .layout-grid.two-col {
     grid-template-columns: 1fr;
+  }
+
+  .app-shell-clean .calendar-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .app-shell-clean .calendar-range-summary {
+    text-align: left;
   }
 }
 

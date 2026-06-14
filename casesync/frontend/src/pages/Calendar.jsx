@@ -15,10 +15,11 @@ import { useState } from 'react';
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const RANGE_OPTIONS = [
-  { key: '7d', label: '7 Days', months: 1, summary: 'Quick look at the next week' },
-  { key: '30d', label: '30 Days', months: 1, summary: 'Month view for the next 30 days' },
-  { key: '6m', label: '6 Months', months: 6, summary: 'Half-year planning view' },
-  { key: '1y', label: '1 Year', months: 12, summary: 'Full-year planning view' },
+  { key: '7d', label: '7 days', months: 1, summary: 'Quick look at the next week' },
+  { key: '30d', label: '30 days', months: 1, summary: 'Month view for the next 30 days' },
+  { key: '3m', label: '3 months', months: 3, summary: 'Quarterly planning view' },
+  { key: '6m', label: '6 months', months: 6, summary: 'Half-year planning view' },
+  { key: '1y', label: '1 year', months: 12, summary: 'Full-year planning view' },
 ];
 
 const toDateOnly = (value) => {
@@ -58,6 +59,8 @@ const getRangeEnd = (today, rangeKey) => {
   switch (rangeKey) {
     case '7d':
       return addDays(today, 7);
+    case '3m':
+      return addMonths(today, 3);
     case '6m':
       return addMonths(today, 6);
     case '1y':
