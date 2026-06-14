@@ -1,6 +1,7 @@
 import { Plus, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import CaseCard from '../components/CaseCard';
+import CaseDetail from '../components/CaseDetail';
 
 const statusList = [
   { value: 'all', label: 'All' },
@@ -32,7 +33,7 @@ export default function Cases({
 }) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchText, setSearchText] = useState('');
-  const [expandedCaseId, setExpandedCaseId] = useState('');
+  const [selectedCaseId, setSelectedCaseId] = useState('');
   const [threshold, setThreshold] = useState(60);
   const [filterRowsBelowThreshold, setFilterRowsBelowThreshold] = useState(false);
   const [caseName, setCaseName] = useState('');
@@ -68,6 +69,10 @@ export default function Cases({
     });
   }, [cases, statusFilter, searchText, threshold, filterRowsBelowThreshold]);
 
+  const selectedCase = useMemo(() => (
+    cases.find((item) => item.caseId === selectedCaseId)
+  ), [cases, selectedCaseId]);
+
   const submitCaseFolder = async (event) => {
     event.preventDefault();
     const cleanNumber = caseNumber.trim();
@@ -84,11 +89,22 @@ export default function Cases({
       });
       setCaseName('');
       setCaseNumber('');
-      setExpandedCaseId(cleanNumber);
+      setSelectedCaseId(cleanNumber);
     } finally {
       setIsCreatingCase(false);
     }
   };
+
+  if (selectedCase) {
+    return (
+      <CaseDetail
+        caseItem={selectedCase}
+        onBack={() => setSelectedCaseId('')}
+        onStatusChange={onStatusChange}
+        onDelete={onDelete}
+      />
+    );
+  }
 
   return (
     <div className="cases-page page-enter">
@@ -197,11 +213,7 @@ export default function Cases({
           <CaseCard
             key={`${item.caseId}-${item.id}`}
             caseItem={item}
-            expanded={expandedCaseId === item.caseId}
-            showEstimateAtOrAbove={threshold}
-            onExpand={() => setExpandedCaseId(expandedCaseId === item.caseId ? '' : item.caseId)}
-            onStatusChange={onStatusChange}
-            onDelete={onDelete}
+            onOpen={setSelectedCaseId}
           />
         ))}
       </div>

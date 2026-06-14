@@ -3495,3 +3495,276 @@ textarea,
 .case-flip-card.is-flipped .case-card__actions {
   min-width: 0;
 }
+
+/* Case workspace detail: folder cards open into a focused case page instead of flipping in place. */
+.case-folder-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: minmax(86px, 1fr) auto;
+  gap: 14px;
+  width: 100%;
+  min-height: 190px;
+  padding: 18px;
+  text-align: left;
+  color: inherit;
+  background:
+    radial-gradient(circle at 18% 14%, color-mix(in srgb, var(--case-color, var(--accent)) 16%, transparent), transparent 36%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.97), rgba(247, 249, 252, 0.84));
+  border-top: 5px solid var(--case-color, var(--accent));
+  cursor: pointer;
+}
+
+.case-folder-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--case-color, var(--accent)) 30%, var(--border-soft));
+  box-shadow: 0 22px 50px rgba(15, 23, 42, 0.12);
+}
+
+.case-folder-card:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--case-color, var(--accent)) 26%, transparent);
+  outline-offset: 3px;
+}
+
+.case-folder-card .case-folder-mark {
+  position: relative;
+  inset: auto;
+  grid-row: 1 / span 2;
+  align-self: start;
+  flex: 0 0 auto;
+  width: 56px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.case-folder-card .case-folder-body {
+  align-self: center;
+  max-width: none;
+}
+
+.case-folder-card .case-folder-body strong {
+  display: block;
+  font-size: clamp(23px, 2.1vw, 34px);
+  letter-spacing: -0.06em;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+.case-folder-card .case-folder-number {
+  display: inline-flex;
+  margin-top: 2px;
+}
+
+.case-folder-card .case-folder-footer {
+  grid-column: 2;
+  align-items: center;
+}
+
+.case-detail-page {
+  display: grid;
+  gap: 16px;
+  min-height: calc(100vh - 72px);
+}
+
+.case-detail-hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  border-top: 5px solid var(--case-color, var(--accent));
+  background:
+    radial-gradient(circle at 15% 18%, color-mix(in srgb, var(--case-color, var(--accent)) 14%, transparent), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 253, 0.9));
+}
+
+.case-detail-title {
+  min-width: 0;
+}
+
+.case-detail-title h2 {
+  margin: 2px 0 10px;
+  font-size: clamp(34px, 4.8vw, 72px);
+  letter-spacing: -0.085em;
+  line-height: 0.92;
+  overflow-wrap: anywhere;
+}
+
+.case-detail-meta-row,
+.case-detail-actions,
+.case-detail-panel-head,
+.case-detail-deadline-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.case-detail-actions {
+  justify-content: flex-end;
+}
+
+.case-detail-actions .input {
+  width: 150px;
+}
+
+.case-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.72fr) minmax(480px, 1.28fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.case-detail-panel {
+  min-width: 0;
+}
+
+.case-detail-panel h3,
+.case-detail-panel-head h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 20px;
+}
+
+.case-detail-panel-head {
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.case-detail-calendar-panel {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.case-detail-deadline-large {
+  display: grid;
+  gap: 8px;
+  padding: clamp(18px, 2.5vw, 28px);
+  border-radius: 22px;
+  color: white;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.26), transparent 34%),
+    linear-gradient(135deg, var(--case-color, var(--accent)), color-mix(in srgb, var(--case-color, var(--accent)) 62%, #0f172a));
+  box-shadow: 0 24px 54px color-mix(in srgb, var(--case-color, var(--accent)) 24%, transparent);
+}
+
+.case-detail-deadline-large span,
+.case-detail-deadline-large em {
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 780;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.84;
+}
+
+.case-detail-deadline-large strong {
+  font-size: clamp(30px, 4.2vw, 54px);
+  letter-spacing: -0.075em;
+  line-height: 0.95;
+}
+
+.case-detail-summary-grid {
+  grid-template-columns: 1fr;
+}
+
+.case-detail-deadline-list {
+  display: grid;
+  gap: 10px;
+}
+
+.case-detail-deadline-list h4 {
+  margin: 0;
+}
+
+.case-detail-deadline-row {
+  justify-content: space-between;
+  padding: 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.case-detail-deadline-row p {
+  margin: 3px 0 0;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.case-detail-email-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: calc(100vh - 245px);
+}
+
+.case-detail-email-list {
+  display: grid;
+  gap: 12px;
+  max-height: calc(100vh - 325px);
+  overflow: auto;
+  padding-right: 8px;
+}
+
+.case-detail-email-list .case-email-item {
+  padding: 16px;
+  border-radius: 18px;
+}
+
+.case-detail-email-preview {
+  -webkit-line-clamp: 8;
+  font-size: 13px;
+  line-height: 1.62;
+}
+
+.case-detail-email-list .case-email-subject {
+  white-space: normal;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.case-detail-email-list .case-email-top {
+  align-items: flex-start;
+}
+
+.case-detail-email-list .case-email-actions {
+  justify-content: flex-start;
+}
+
+@media (max-width: 1180px) {
+  .case-detail-hero,
+  .case-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .case-detail-actions {
+    justify-content: flex-start;
+  }
+
+  .case-detail-email-panel {
+    min-height: 520px;
+  }
+
+  .case-detail-email-list {
+    max-height: 560px;
+  }
+}
+
+@media (max-width: 720px) {
+  .case-folder-card {
+    grid-template-columns: 1fr;
+  }
+
+  .case-folder-card .case-folder-mark {
+    grid-row: auto;
+  }
+
+  .case-folder-card .case-folder-footer {
+    grid-column: auto;
+  }
+
+  .case-detail-title h2 {
+    font-size: 38px;
+  }
+}
