@@ -1968,3 +1968,64 @@ textarea,
     width: 100%;
   }
 }
+
+/* Case detail readability */
+.case-summary-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+
+.case-summary-item {
+  background: rgba(247, 248, 250, 0.82);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-radius: 16px;
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.case-summary-item span,
+.case-summary-item small {
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.case-summary-item strong {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.case-raw-notes {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  margin: 0 0 14px;
+  overflow: hidden;
+}
+
+.case-raw-notes summary {
+  cursor: pointer;
+  font-weight: 720;
+  padding: 12px 14px;
+}
+
+.case-raw-notes pre {
+  background: rgba(247, 248, 250, 0.86);
+  border-top: 1px solid rgba(0, 0, 0, 0.07);
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: 14px;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 860px) {
+  .case-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
