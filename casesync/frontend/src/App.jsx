@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import AccountBar from './components/AccountBar';
-import NotificationManager from './components/NotificationManager';
 import Dashboard from './pages/Dashboard';
 import Triggers from './pages/Triggers';
 import Cases from './pages/Cases';
@@ -17,7 +16,6 @@ import {
   runScan,
   updateCaseStatus,
   deleteCase,
-  confirmCase,
 } from './utils/api';
 
 const DEFAULT_SCAN_POLL_MS = 5 * 60 * 1000;
@@ -59,7 +57,6 @@ export default function App() {
   const [scanLogs, setScanLogs] = useState([]);
   const [scanStatus, setScanStatus] = useState({});
   const [caseNotifications, setCaseNotifications] = useState([]);
-  const [notifPanelOpen, setNotifPanelOpen] = useState(false);
   const [toast, setToast] = useState('');
   const [activeView, setActiveView] = useState('cases');
   const [isLoading, setIsLoading] = useState({ accounts: true, cases: false, logs: false, scan: false });
@@ -104,17 +101,6 @@ export default function App() {
 
   const clearNotifications = () => {
     setCaseNotifications((prev) => prev.map((item) => ({ ...item, status: 'dismissed' })));
-  };
-
-  const confirmNotification = async (item) => {
-    try {
-      await confirmCase(item.caseId);
-      dismissNotification(item.id);
-      await loadCases();
-      setToast('Added to CaseSync Calendar.');
-    } catch (error) {
-      setToast(toastForError(error));
-    }
   };
 
   const loadAccounts = async () => {
@@ -318,6 +304,9 @@ export default function App() {
       },
     ];
     const current = navItems.find((item) => item.key === activeView) || navItems[0];
+    const sidebarAlerts = caseNotifications
+      .filter((item) => item.status !== 'dismissed')
+      .slice(0, 5);
 
     const view = {
       cases: <Cases {...casesProps} />,
@@ -346,6 +335,59 @@ export default function App() {
               </button>
             ))}
           </div>
+
+          <div className="canvas-alerts">
+            <div className="canvas-alerts-head">
+              <span>Case alerts</span>
+              {sidebarAlerts.length > 0 ? (
+                <button className="mini-link" type="button" onClick={clearNotifications}>
+                  Clear
+                </button>
+              ) : null}
+            </div>
+
+            {sidebarAlerts.length === 0 ? (
+              <div className="canvas-alert-empty">
+                No pending alerts.
+              </div>
+            ) : (
+              <div className="canvas-alert-list">
+                {sidebarAlerts.map((item) => (
+                  <button
+                    className={`canvas-alert-item ${item.type === 'updated_case' ? 'is-updated' : 'is-new'}`}
+                    type="button"
+                    key={item.id}
+                    onClick={() => setActiveView('cases')}
+                  >
+                    <span className="canvas-alert-dot" />
+                    <span className="canvas-alert-copy">
+                      <strong>{item.caseId || 'Case'}</strong>
+                      <small>{item.type === 'updated_case' ? 'Updated' : 'New'} · {item.deadline || 'No deadline'}</small>
+                    </span>
+                    <span
+                      className="canvas-alert-dismiss"
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        dismissNotification(item.id);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          dismissNotification(item.id);
+                        }
+                      }}
+                    >
+                      ×
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="canvas-sidebar-footer">
             <div className="connected-pill">
               {accounts.length} Google {accounts.length === 1 ? 'account' : 'accounts'} connected
@@ -380,10 +422,7 @@ export default function App() {
         </section>
       </div>
     );
-  }, [activeView, cases, scanLogs, scanStatus, accounts, isLoading.scan, casesProps]);
-
-  const pendingNotifications = caseNotifications.filter((item) => item.status !== 'dismissed').length;
-  const recentNotifications = caseNotifications.slice(0, 20);
+  }, [activeView, cases, scanLogs, scanStatus, accounts, isLoading.scan, casesProps, caseNotifications]);
 
   if (isLoading.accounts && accounts.length === 0) {
     return (
@@ -428,53 +467,6 @@ export default function App() {
         </div>
 
         <div className="clean-header-actions">
-          <div className="notification-bell-wrap">
-            <button
-              className="notification-bell header-bell"
-              type="button"
-              onClick={() => setNotifPanelOpen((value) => !value)}
-            >
-              <span>Notifications</span>
-              {pendingNotifications > 0 ? <span className="notification-badge">{pendingNotifications}</span> : null}
-            </button>
-            {notifPanelOpen ? (
-              <div className="notification-panel header-notification-panel">
-                <div className="notification-panel-head">
-                  <strong>Recent alerts</strong>
-                  {recentNotifications.length > 0 ? (
-                    <button className="btn-ghost" type="button" onClick={clearNotifications}>
-                      Dismiss all
-                    </button>
-                  ) : null}
-                </div>
-                {recentNotifications.length === 0 ? (
-                  <div className="meta">No alerts yet</div>
-                ) : (
-                  <div className="notification-list">
-                    {recentNotifications.map((item) => (
-                      <div className={`notification-list-item${item.status === 'dismissed' ? ' is-dismissed' : ''}`} key={item.id}>
-                        <div>
-                          <div className="notification-list-title">
-                            <strong>{item.caseId}</strong>
-                            <span className="notification-list-status">
-                              {item.type === 'updated_case' ? 'Updated' : 'New'}
-                            </span>
-                          </div>
-                          <div className="meta">{item.action}</div>
-                          <div className="meta">Deadline: {item.deadline || 'n/a'}</div>
-                        </div>
-                        {item.status !== 'dismissed' ? (
-                          <button className="btn-icon" type="button" onClick={() => dismissNotification(item.id)}>
-                            ×
-                          </button>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </div>
           <span className="account-pill">
             {accounts.length === 1 ? accounts[0]?.email : `${accounts.length} inboxes`}
           </span>
@@ -490,17 +482,12 @@ export default function App() {
 
       <main className="main main-clean">
         {main}
-        <AccountBar
-          accounts={accounts}
-          onConnect={onConnect}
-          onRemove={onRemoveAccount}
-        />
-      </main>
-      <NotificationManager
-        notifications={caseNotifications}
-        onConfirm={confirmNotification}
-        onDismiss={dismissNotification}
+      <AccountBar
+        accounts={accounts}
+        onConnect={onConnect}
+        onRemove={onRemoveAccount}
       />
+    </main>
       {toast ? <div className="toast">{toast}</div> : null}
     </div>
   );
