@@ -98,17 +98,22 @@ export default function Calendar({ cases = [], accounts = [], onManualCaseCreate
 
   const openQuickAdd = (event, dateKey) => {
     event.preventDefault();
+    const rect = event.currentTarget.getBoundingClientRect();
+    const width = 320;
+    const height = 360;
+    const preferredX = rect.right + 10;
+    const fallbackX = rect.left - width - 10;
+    const x = preferredX + width <= window.innerWidth - 12
+      ? preferredX
+      : Math.max(12, fallbackX);
+    const y = Math.max(12, Math.min(rect.top, window.innerHeight - height - 12));
     setManualStatus('');
     setManualForm((prev) => ({
       ...prev,
       proofServiceDate: dateKey,
       accountEmail: prev.accountEmail || accountOptions[0] || '',
     }));
-    setQuickAdd({
-      date: dateKey,
-      x: Math.min(event.clientX, window.innerWidth - 380),
-      y: Math.min(event.clientY, window.innerHeight - 360),
-    });
+    setQuickAdd({ date: dateKey, x, y });
   };
 
   const closeQuickAdd = () => {

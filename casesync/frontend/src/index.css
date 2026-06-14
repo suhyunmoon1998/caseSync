@@ -2098,3 +2098,57 @@ textarea,
 .calendar-day {
   cursor: context-menu;
 }
+
+/* Larger calendar surface and anchored quick-add popover */
+.app-shell-clean .layout-grid.two-col:has(.calendar-months) {
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+}
+
+.app-shell-clean .calendar-months {
+  max-height: 760px;
+}
+
+.calendar-month h3 {
+  font-size: 22px;
+}
+
+.calendar-weekdays > div {
+  font-size: 12px;
+  padding-bottom: 6px;
+}
+
+.calendar-day {
+  min-height: 104px;
+  padding: 10px;
+}
+
+.calendar-day-number {
+  font-size: 13px;
+  height: 26px;
+  width: 26px;
+}
+
+.calendar-dot-tag {
+  font-size: 11px;
+  padding: 4px 7px;
+}
+
+.quick-add-popover {
+  max-width: min(320px, calc(100vw - 24px));
+  width: 320px;
+}
+
+.quick-add-popover .input {
+  min-height: 38px;
+  padding: 8px 10px;
+}
+
+@media (max-width: 1040px) {
+  .app-shell-clean .layout-grid.two-col:has(.calendar-months) {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-day {
+    min-height: 88px;
+  }
+}
