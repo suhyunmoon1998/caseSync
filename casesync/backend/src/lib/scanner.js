@@ -15,7 +15,7 @@ import {
   updateCaseRecordStatus,
   deleteCaseRecord,
 } from './db.js';
-import { getAuthClient, fetchTriggerEmails } from './gmail.js';
+import { getAuthClient, fetchTriggerEmails, fetchCaseNumberEmails } from './gmail.js';
 import { parseEmail } from './parser.js';
 import {
   findEventByCaseId,
@@ -30,6 +30,7 @@ import {
 
 const defaultCalendarId = process.env.SCAN_CALENDAR_ID || 'primary';
 const scanMaxEmails = Number(process.env.SCAN_MAX_EMAILS || 1000);
+const caseFolderScanMaxEmails = Number(process.env.CASE_FOLDER_SCAN_MAX_EMAILS || 100);
 
 const runningState = {
   running: false,
@@ -387,6 +388,7 @@ export const runAutoScan = async (triggerSource = 'auto') => {
     const triggers = await getTriggers();
     const enabledTriggers = triggers.filter((trigger) => trigger.enabled !== false);
     const accounts = await getAllAccountsRaw();
+    const knownCaseFolders = (await getCaseRecordsFromDb()).filter((item) => isValidCaseId(item.caseId));
 
     for (const account of accounts) {
       if (!account?.tokens) {
@@ -543,6 +545,92 @@ export const runAutoScan = async (triggerSource = 'auto') => {
           } catch (error) {
             const msg = `${trigger.name || trigger.id}: ${error.message || 'scan error'}`;
             summary.errors.push(msg);
+          }
+        }
+      }
+
+      for (const folder of knownCaseFolders) {
+        const emails = await fetchCaseNumberEmails(auth, folder.caseId, caseFolderScanMaxEmails);
+        for (const email of emails) {
+          const alreadySavedToCase = await getCaseEmailByMessageId(email.id);
+          if (alreadySavedToCase?.caseId === folder.caseId) {
+            continue;
+          }
+
+          summary.emailsScanned += 1;
+
+          try {
+            const parsed = await parseEmail({
+              subject: email.subject,
+              body: email.body,
+              from: email.from,
+              date: email.date,
+              caseIdPatterns: [],
+            });
+            const parsedCaseId = safeCaseId(parsed.caseId);
+            const matchedCaseId = parsedCaseId === folder.caseId || `${email.subject}\n${email.body}`.includes(folder.caseId)
+              ? folder.caseId
+              : '';
+
+            if (!matchedCaseId) {
+              continue;
+            }
+
+            const caseConfidence = estimateLabel(parsed.caseConfidence, parsed.caseId ? 86 : 72);
+            const deadlines = Array.isArray(parsed.deadlines) ? [...parsed.deadlines] : [];
+            const responsePackage = buildResponsePackage({
+              proofServiceDate: parsed.proofServiceDate,
+              proofServiceMethod: parsed.proofServiceMethod,
+              discoverySets: parsed.discoverySets,
+              caseId: matchedCaseId,
+              caseTitle: folder.caseTitle || matchedCaseId,
+            });
+            const proofDeadline = responsePackage?.responseDeadline || null;
+            if (proofDeadline && !deadlines.some((item) => item.date === proofDeadline.date && item.action === proofDeadline.action)) {
+              deadlines.push(proofDeadline);
+            }
+
+            await storeCaseEmail({
+              email,
+              account,
+              trigger: { id: 'case-folder-scan', name: 'Case folder search' },
+              caseId: matchedCaseId,
+              parsed,
+              caseConfidence,
+              classification: proofDeadline ? 'deadline-package' : 'case-folder-match',
+              needsReview: !proofDeadline || caseConfidence < 80,
+              sourceReason: proofDeadline
+                ? 'Matched by case folder number and detected a response deadline package.'
+                : 'Matched by case folder number. Review to confirm relevance.',
+            });
+
+            if (!proofDeadline) {
+              continue;
+            }
+
+            await upsertCaseRecord({
+              ...folder,
+              caseId: matchedCaseId,
+              caseTitle: folder.caseTitle || parsed.caseTitle || matchedCaseId,
+              caseColor: folder.caseColor || '',
+              triggerName: folder.triggerName || 'Case folder search',
+              summary: parsed.summary || folder.summary || '',
+              deadlines,
+              caseConfidence,
+              isEstimated: shouldTreatAsEstimated(matchedCaseId, caseConfidence, parsed.estimated),
+              proofServiceDate: parsed.proofServiceDate || folder.proofServiceDate || '',
+              proofServiceMethod: parsed.proofServiceMethod || folder.proofServiceMethod || '',
+              discoverySets: responsePackage?.discoverySets || folder.discoverySets || [],
+              responseDeadlineDate: proofDeadline.date,
+              responsePackage,
+              sourceAccount: account.email,
+              sourceCalendarId: folder.sourceCalendarId || defaultCalendarId,
+              sourceEventSummary: folder.sourceEventSummary || '',
+              lastUpdated: new Date().toISOString(),
+            });
+            summary.casesUpdated += 1;
+          } catch (error) {
+            summary.errors.push(`${folder.caseId}: ${error.message || 'case folder scan error'}`);
           }
         }
       }

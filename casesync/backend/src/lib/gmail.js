@@ -165,3 +165,45 @@ export const fetchTriggerEmails = async (auth, trigger, maxResults = 50) => {
 
   return resolved;
 };
+
+export const fetchCaseNumberEmails = async (auth, caseId, maxResults = 100) => {
+  const gmail = google.gmail({ version: 'v1', auth });
+  const lookback = normalizeLookback(process.env.GMAIL_LOOKBACK);
+  const query = `newer_than:${lookback} "${escapeQueryTerm(caseId)}"`;
+  const totalLimit = Math.max(1, Number(maxResults) || 100);
+  const items = [];
+  let pageToken = undefined;
+
+  do {
+    const remaining = totalLimit - items.length;
+    const { data } = await gmail.users.messages.list({
+      userId: 'me',
+      q: query,
+      maxResults: Math.min(500, remaining),
+      pageToken,
+    });
+
+    items.push(...(data.messages || []));
+    pageToken = data.nextPageToken;
+  } while (pageToken && items.length < totalLimit);
+
+  const resolved = [];
+  for (const item of items) {
+    const messageId = item.id;
+    const msg = await getEmailDetail(auth, messageId);
+    const headers = msg.payload?.headers || [];
+    const getHeader = (name) => headers.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
+
+    resolved.push({
+      id: messageId,
+      threadId: msg.threadId,
+      subject: getHeader('subject') || '(No Subject)',
+      from: getHeader('from') || '(No From)',
+      date: getHeader('date') || new Date().toISOString(),
+      snippet: msg.snippet || '',
+      body: extractText(msg.payload),
+    });
+  }
+
+  return resolved;
+};
