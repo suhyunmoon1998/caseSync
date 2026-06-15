@@ -110,8 +110,8 @@ export default function Cases({
     <div className="cases-page page-enter">
       <div className="topbar">
         <div>
-          <h2>Cases</h2>
-          <p className="meta">Review Proof of Service deadlines and AI-estimated case signals in one place.</p>
+          <h2>My Cases</h2>
+          <p className="meta">Each card is a case folder. Open one to see its next deadline, related emails, and notes.</p>
         </div>
         <div className="hint-chip">
           Showing: {filtered.length} / {cases.length}
@@ -120,14 +120,14 @@ export default function Cases({
 
       <form className="card quick-case-form" onSubmit={submitCaseFolder}>
         <div>
-          <h3>Add case to workspace</h3>
-          <p className="meta">Enter a case name and case number. CaseSync assigns a color and links matching emails after scans.</p>
+          <h3>Add a case folder</h3>
+          <p className="meta">Add the case number once. CaseSync will attach matching emails when it scans your inbox.</p>
         </div>
         <input
           className="input"
           value={caseName}
           onChange={(event) => setCaseName(event.target.value)}
-          placeholder="Case name, e.g. Mun v. Apex"
+          placeholder="Case name, e.g. Aguilar v. August Apparel"
         />
         <input
           className="input"
@@ -138,7 +138,7 @@ export default function Cases({
         />
         <button className="btn-primary" type="submit" disabled={isCreatingCase || !caseNumber.trim()}>
           {isCreatingCase ? <span className="spinner" /> : <Plus size={14} />}
-          {isCreatingCase ? 'Adding...' : 'Add case'}
+          {isCreatingCase ? 'Adding...' : 'Add case folder'}
         </button>
       </form>
 
@@ -199,7 +199,7 @@ export default function Cases({
       {cases.length === 0 ? (
         <section className="card empty-state">
           <h3>No cases yet</h3>
-          <p className="meta">Create a trigger and run a scan to generate cases automatically.</p>
+          <p className="meta">Connect Gmail, check inboxes, or add your first case folder manually.</p>
         </section>
       ) : filtered.length === 0 ? (
         <section className="card empty-state">

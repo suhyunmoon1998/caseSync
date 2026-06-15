@@ -69,12 +69,12 @@ export default function Dashboard({
     <div className="page-enter">
       <div className="topbar">
         <div>
-          <h2>Dashboard</h2>
-          <p className="meta">View scan status, upcoming deadlines, and case health in one place.</p>
+          <h2>Today</h2>
+          <p className="meta">Start here. CaseSync shows what needs attention and what can wait.</p>
         </div>
         <button className="btn-primary" onClick={onRunScan} disabled={loadingScan}>
           <RefreshCw size={15} />
-          {loadingScan ? 'Scanning...' : 'Scan now'}
+          {loadingScan ? 'Checking inboxes...' : 'Check inboxes now'}
         </button>
       </div>
 
@@ -82,7 +82,7 @@ export default function Dashboard({
         <div className="stat">
           <div className="stat-icon"><FolderOpen size={16} /></div>
           <div className="n">{stats.total}</div>
-          <div>Total cases</div>
+          <div>Tracked cases</div>
         </div>
         <div className="stat">
           <div className="stat-icon stat-icon-danger"><AlertTriangle size={16} /></div>
@@ -97,12 +97,12 @@ export default function Dashboard({
         <div className="stat">
           <div className="stat-icon stat-icon-warning"><TimerReset size={16} /></div>
           <div className="n">{stats.pendingWeek}</div>
-          <div>Within 14 days</div>
+          <div>Due within 14 days</div>
         </div>
         <div className="stat">
           <div className="stat-icon"><CalendarClock size={16} /></div>
           <div className="n">{stats.pendingMonth}</div>
-          <div>Within 60 days</div>
+          <div>Due within 60 days</div>
         </div>
         <div className="stat">
           <div className="stat-icon"><Clock size={16} /></div>
@@ -112,14 +112,14 @@ export default function Dashboard({
         <div className="stat">
           <div className="stat-icon"><CalendarClock size={16} /></div>
           <div className="n">{nextScanText}</div>
-          <div>Next auto scan</div>
+          <div>Next automatic check</div>
         </div>
       </div>
 
       <div className="layout-grid two-col" style={{ marginBottom: 12 }}>
         <div className="card">
-          <h3>Upcoming 60-day deadlines</h3>
-          {upcoming.length === 0 ? <div className="meta">No scheduled deadlines.</div> : (
+          <h3>Deadlines coming up</h3>
+          {upcoming.length === 0 ? <div className="meta">Nothing urgent found. CaseSync will keep watching connected inboxes.</div> : (
             <div className="timeline">
               {upcoming.map((item) => {
                 const dayText = item.diff === 0 ? 'Today' : `${item.diff} days`;

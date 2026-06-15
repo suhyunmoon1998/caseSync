@@ -1767,6 +1767,71 @@ textarea,
   }
 }
 
+/* Commercial polish: friendly first-run education and approachable product copy. */
+.commercial-onboarding {
+  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(280px, 1.15fr);
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 16px;
+}
+
+.commercial-onboarding h3 {
+  margin: 4px 0 0;
+  font-size: clamp(20px, 2.2vw, 30px);
+  letter-spacing: -0.06em;
+}
+
+.onboarding-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.onboarding-steps span,
+.landing-proof-points span {
+  border: 1px solid rgba(0, 122, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.66);
+  color: var(--future-ink);
+  font-size: 12px;
+  font-weight: 760;
+  padding: 9px 11px;
+  text-align: center;
+  box-shadow: 0 10px 26px rgba(0, 122, 255, 0.06);
+}
+
+.landing-proof-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 18px 0 4px;
+}
+
+.connect-card {
+  max-width: 760px;
+}
+
+.connect-copy {
+  max-width: 620px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (max-width: 980px) {
+  .commercial-onboarding {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .onboarding-steps {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Desktop composition polish: keep the connected dashboard calm and centered. */
 .app-shell-clean {
   padding-bottom: 48px;

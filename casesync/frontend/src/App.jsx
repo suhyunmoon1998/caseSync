@@ -289,31 +289,31 @@ export default function App() {
     const navItems = [
       {
         key: 'cases',
-        label: 'Cases',
+        label: 'My Cases',
         kicker: `${cases.length} tracked`,
-        title: 'Cases',
-        description: 'Review active response deadlines, confidence, status, and case details.',
+        title: 'Your case deadlines, simplified',
+        description: 'Open a case to see the next due date, related emails, and calendar notes in plain English.',
       },
       {
         key: 'dashboard',
-        label: 'Dashboard',
-        kicker: 'Overview',
-        title: 'Dashboard',
-        description: 'Scan status, deadline health, and recent activity at a glance.',
+        label: 'Home',
+        kicker: 'Today',
+        title: 'Today at a glance',
+        description: 'Know what is urgent, what is coming up, and when CaseSync last checked your inbox.',
       },
       {
         key: 'calendar',
         label: 'Calendar',
-        kicker: 'Schedule',
+        kicker: 'Deadlines',
         title: 'Calendar',
-        description: 'Plan deadlines by range and right-click any date to add a schedule.',
+        description: 'See deadlines by week, month, quarter, or year. Right-click any day to add one manually.',
       },
       {
         key: 'triggers',
-        label: 'Triggers',
-        kicker: 'Automation',
-        title: 'Triggers',
-        description: 'Control the Gmail rules that detect discovery deadlines.',
+        label: 'Email Rules',
+        kicker: 'Setup',
+        title: 'Email rules',
+        description: 'Choose which inboxes CaseSync should watch for discovery, proof of service, and deadlines.',
       },
     ];
     const current = navItems.find((item) => item.key === activeView) || navItems[0];
@@ -332,7 +332,7 @@ export default function App() {
       <div className="canvas-workspace">
         <aside className="canvas-sidebar" aria-label="CaseSync sections">
           <div className="canvas-sidebar-title">
-            <span>Workspace</span>
+            <span>Deadline assistant</span>
             <strong>CaseSync</strong>
           </div>
           <div className="canvas-nav">
@@ -361,7 +361,7 @@ export default function App() {
 
             {sidebarAlerts.length === 0 ? (
               <div className="canvas-alert-empty">
-                No pending alerts.
+                All clear. New deadline updates will appear here.
               </div>
             ) : (
               <div className="canvas-alert-list">
@@ -413,9 +413,20 @@ export default function App() {
         </aside>
 
         <section className="canvas-stage">
+          <div className="commercial-onboarding card">
+            <div>
+              <span className="eyebrow">How CaseSync works</span>
+              <h3>Connect Gmail. Scan emails. Trust the calendar.</h3>
+            </div>
+            <div className="onboarding-steps">
+              <span>1. Connect inboxes</span>
+              <span>2. Detect Proof of Service</span>
+              <span>3. Create deadlines</span>
+            </div>
+          </div>
           <div className="canvas-stage-head">
             <div>
-              <p className="eyebrow">Legal email automation</p>
+              <p className="eyebrow">Built for busy legal teams</p>
               <h1>{current.title}</h1>
               <p className="hero-copy">{current.description}</p>
             </div>
@@ -455,14 +466,19 @@ export default function App() {
         <div className="connect-card">
           <img className="connect-icon logo-image" src={caseSyncLogo} alt="CaseSync logo" />
           <p className="eyebrow">Welcome to CaseSync</p>
-          <h1 className="landing-headline">Automatically track court deadlines from email.</h1>
+          <h1 className="landing-headline">Never lose a discovery deadline in your inbox again.</h1>
           <p className="connect-copy">
-            Connect Google once. CaseSync reads matching Gmail messages and writes case deadlines to Google Calendar.
+            CaseSync watches Gmail for Proof of Service emails, calculates response deadlines, and organizes them by case.
           </p>
+          <div className="landing-proof-points">
+            <span>Reads Gmail and attachments</span>
+            <span>Calculates 30/32/35-day deadlines</span>
+            <span>Adds Google Calendar reminders</span>
+          </div>
           <button className="btn-primary connect-cta" onClick={onConnect}>
-            Connect Google Account
+            Connect Gmail to start
           </button>
-          <p className="meta">Requires Gmail read access and Google Calendar write access.</p>
+          <p className="meta">You stay in control. CaseSync only uses access to find legal deadlines and create calendar reminders.</p>
         </div>
       </div>
     );
@@ -475,7 +491,7 @@ export default function App() {
           <img className="brand-mark logo-image" src={caseSyncLogo} alt="CaseSync logo" />
           <div>
             <strong>CaseSync</strong>
-            <span>Everything important on one screen</span>
+            <span>Deadline tracking for legal teams</span>
           </div>
         </div>
 
