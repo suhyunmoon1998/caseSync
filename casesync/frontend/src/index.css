@@ -4374,3 +4374,78 @@ body::after {
   border-color: rgba(255, 122, 24, 0.30);
   box-shadow: 0 24px 60px rgba(17, 17, 17, 0.12), 0 12px 34px rgba(255, 122, 24, 0.12);
 }
+
+/* Main homepage: premium black landing screen. */
+.connect-screen {
+  color: #ffffff;
+  background:
+    radial-gradient(circle at 18% 16%, rgba(255, 122, 24, 0.28), transparent 28%),
+    radial-gradient(circle at 86% 18%, rgba(255, 255, 255, 0.10), transparent 24%),
+    radial-gradient(circle at 68% 88%, rgba(255, 122, 24, 0.18), transparent 32%),
+    linear-gradient(135deg, #030303 0%, #0b0b0d 48%, #170c03 100%) !important;
+  overflow: hidden;
+}
+
+.connect-screen::before {
+  opacity: 0.34;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 122, 24, 0.10) 1px, transparent 1px) !important;
+  background-size: 58px 58px !important;
+}
+
+.connect-screen::after {
+  background:
+    linear-gradient(110deg, transparent 0%, rgba(255, 122, 24, 0.18) 46%, transparent 54%) 0 0 / 240% 100%,
+    radial-gradient(ellipse at 50% 120%, rgba(255, 122, 24, 0.18), transparent 52%) !important;
+}
+
+.connect-card {
+  color: #ffffff;
+  background:
+    linear-gradient(145deg, rgba(17, 17, 17, 0.82), rgba(5, 5, 5, 0.72)),
+    radial-gradient(circle at top left, rgba(255, 122, 24, 0.18), transparent 34%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.46), 0 18px 62px rgba(255, 122, 24, 0.18) !important;
+  backdrop-filter: blur(28px) saturate(1.18);
+}
+
+.connect-card .eyebrow {
+  color: #ff9d2e !important;
+}
+
+.connect-card h1,
+.connect-card .landing-headline {
+  background: linear-gradient(100deg, #ffffff 0%, #fff1e3 48%, #ff7a18 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  text-shadow: none;
+}
+
+.connect-card .connect-copy,
+.connect-card .meta {
+  color: rgba(255, 255, 255, 0.74) !important;
+}
+
+.connect-card .landing-proof-points span {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 122, 24, 0.26);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.20);
+}
+
+.connect-card .connect-cta,
+.connect-card .btn-primary {
+  color: #111111;
+  background: linear-gradient(135deg, #ffffff 0%, #ffb25c 38%, #ff7a18 100%) !important;
+  border-color: rgba(255, 255, 255, 0.54) !important;
+  box-shadow: 0 18px 54px rgba(255, 122, 24, 0.32), 0 8px 24px rgba(0, 0, 0, 0.32) !important;
+}
+
+.connect-card .connect-icon.logo-image,
+.connect-card .connect-icon {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(255, 122, 24, 0.32);
+  box-shadow: 0 18px 44px rgba(255, 122, 24, 0.20);
+}
