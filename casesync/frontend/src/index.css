@@ -4177,3 +4177,200 @@ body::after {
     transition: none;
   }
 }
+
+/* Commercial orange / black / white brand skin. */
+:root {
+  --future-ink: #0b0b0d;
+  --future-muted: #6b625b;
+  --future-panel: rgba(255, 255, 255, 0.84);
+  --future-line: rgba(255, 122, 24, 0.20);
+  --future-blue: #ff7a18;
+  --future-cyan: #ff9d2e;
+  --future-mint: #111111;
+  --future-amber: #ff7a18;
+  --future-glow: 0 24px 72px rgba(255, 122, 24, 0.14), 0 8px 26px rgba(12, 12, 14, 0.08);
+  --accent: #ff7a18;
+  --accent-2: #111111;
+  --accent-soft: rgba(255, 122, 24, 0.12);
+  --text-1: #0b0b0d;
+  --text-2: #4e4741;
+  --text-3: #7a716a;
+  --border-soft: rgba(12, 12, 14, 0.10);
+}
+
+body {
+  color: #0b0b0d;
+  background:
+    radial-gradient(circle at 10% 8%, rgba(255, 122, 24, 0.22), transparent 30%),
+    radial-gradient(circle at 88% 3%, rgba(17, 17, 17, 0.10), transparent 28%),
+    radial-gradient(circle at 74% 84%, rgba(255, 157, 46, 0.16), transparent 32%),
+    linear-gradient(135deg, #ffffff 0%, #fff8f1 44%, #f5f1ed 100%);
+}
+
+body::before {
+  opacity: 0.34;
+  background-image:
+    linear-gradient(rgba(17, 17, 17, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 122, 24, 0.10) 1px, transparent 1px);
+}
+
+body::after {
+  background:
+    linear-gradient(110deg, transparent 0%, rgba(255, 122, 24, 0.16) 46%, transparent 52%) 0 0 / 240% 100%,
+    radial-gradient(ellipse at 50% 120%, rgba(17, 17, 17, 0.08), transparent 54%);
+}
+
+.clean-header,
+.canvas-sidebar,
+.canvas-stage,
+.card,
+.stat,
+.account-panel,
+.notification-panel,
+.calendar-month,
+.case-detail-hero,
+.case-detail-panel,
+.case-folder-card,
+.commercial-onboarding {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(255, 248, 241, 0.70)),
+    radial-gradient(circle at top left, rgba(255, 122, 24, 0.10), transparent 34%);
+  border-color: rgba(17, 17, 17, 0.09);
+  box-shadow: 0 24px 72px rgba(17, 17, 17, 0.08), 0 8px 30px rgba(255, 122, 24, 0.09);
+}
+
+.clean-brand strong,
+.canvas-sidebar-title strong,
+.canvas-stage-head h1,
+.case-detail-title h2,
+.topbar h2,
+.landing-headline {
+  background: linear-gradient(100deg, #0b0b0d 0%, #111111 46%, #ff7a18 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.canvas-sidebar::before,
+.canvas-stage::before,
+.case-detail-hero::before {
+  background:
+    linear-gradient(135deg, rgba(255, 122, 24, 0.28), transparent 24%, transparent 72%, rgba(17, 17, 17, 0.16)),
+    linear-gradient(rgba(255, 255, 255, 0.64), rgba(255, 255, 255, 0));
+}
+
+.canvas-nav-item,
+.btn-ghost,
+.btn-danger,
+.input,
+.account-pill,
+.hint-chip,
+.badge,
+.calendar-range-chip,
+.onboarding-steps span,
+.landing-proof-points span {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(17, 17, 17, 0.10);
+  color: #0b0b0d;
+}
+
+.canvas-nav-item:hover,
+.btn-ghost:hover,
+.calendar-range-chip:hover {
+  background: rgba(255, 122, 24, 0.10);
+  border-color: rgba(255, 122, 24, 0.30);
+  box-shadow: 0 14px 34px rgba(255, 122, 24, 0.12);
+}
+
+.canvas-nav-item.is-active,
+.btn-primary,
+.btn-success,
+.calendar-range-chip.is-active {
+  color: #fff;
+  background: linear-gradient(135deg, #0b0b0d 0%, #1c1713 42%, #ff7a18 100%);
+  border-color: rgba(255, 255, 255, 0.56);
+  box-shadow: 0 18px 46px rgba(255, 122, 24, 0.25), 0 10px 26px rgba(17, 17, 17, 0.16);
+}
+
+.canvas-nav-item.is-active small {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.btn-primary:hover,
+.btn-success:hover {
+  filter: saturate(1.12) brightness(1.04);
+}
+
+.input:focus {
+  border-color: rgba(255, 122, 24, 0.66);
+  box-shadow: 0 0 0 4px rgba(255, 122, 24, 0.15);
+}
+
+.canvas-stage-head {
+  background:
+    radial-gradient(circle at 92% 20%, rgba(17, 17, 17, 0.09), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(255, 246, 237, 0.74));
+  border-color: rgba(17, 17, 17, 0.08);
+}
+
+.canvas-stage-head .eyebrow,
+.case-folder-kicker,
+.eyebrow,
+.mini-link {
+  color: #ff6a00;
+}
+
+.case-folder-card:hover,
+.calendar-day:hover,
+.case-email-item:hover,
+.case-detail-deadline-row:hover {
+  border-color: rgba(255, 122, 24, 0.36);
+  box-shadow: 0 24px 62px rgba(17, 17, 17, 0.10), 0 12px 36px rgba(255, 122, 24, 0.14);
+}
+
+.case-detail-deadline-large {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.22), transparent 34%),
+    linear-gradient(135deg, #0b0b0d, #1b1714 42%, #ff7a18 100%);
+  box-shadow: 0 26px 70px rgba(17, 17, 17, 0.18), 0 16px 44px rgba(255, 122, 24, 0.20);
+}
+
+.case-email-item,
+.case-detail-deadline-row,
+.case-summary-item,
+.timeline-item,
+.calendar-day {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(17, 17, 17, 0.09);
+  box-shadow: 0 10px 30px rgba(17, 17, 17, 0.045);
+}
+
+.calendar-day.has-deadline {
+  background:
+    radial-gradient(circle at 90% 10%, rgba(255, 122, 24, 0.24), transparent 38%),
+    rgba(255, 255, 255, 0.76);
+}
+
+.badge-high,
+.stat-icon-danger {
+  background: rgba(255, 59, 48, 0.12);
+  color: #b42318;
+}
+
+.badge-medium,
+.stat-icon-warning {
+  background: rgba(255, 122, 24, 0.15);
+  color: #ad4e00;
+}
+
+.badge-low,
+.badge-active,
+.stat-icon-success {
+  background: rgba(17, 17, 17, 0.08);
+  color: #111111;
+}
+
+.toast {
+  border-color: rgba(255, 122, 24, 0.30);
+  box-shadow: 0 24px 60px rgba(17, 17, 17, 0.12), 0 12px 34px rgba(255, 122, 24, 0.12);
+}
