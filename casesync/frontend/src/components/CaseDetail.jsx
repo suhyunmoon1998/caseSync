@@ -42,6 +42,38 @@ const deadlineMood = (date) => {
 
 const statusLabel = (status) => (status === 'active' ? 'In progress' : status || 'active');
 
+const deadlineKey = (deadline) => [
+  deadline?.date || '',
+  String(deadline?.action || 'Review deadline').trim().toLowerCase().replace(/\s+/g, ' '),
+  deadline?.time || '',
+].join('|');
+
+const cleanAction = (action) => action || 'Review deadline';
+
+const buildDeadlineRows = (deadlines = []) => {
+  const byKey = new Map();
+  for (const deadline of deadlines) {
+    const parsed = parseDate(deadline?.date);
+    if (!parsed) {
+      continue;
+    }
+    const key = deadlineKey(deadline);
+    const existing = byKey.get(key);
+    byKey.set(key, {
+      ...existing,
+      ...deadline,
+      date: deadline.date,
+      action: cleanAction(deadline.action),
+      parsed,
+      diff: differenceInCalendarDays(parsed, new Date()),
+    });
+  }
+
+  return [...byKey.values()].sort((a, b) => (
+    `${a.date}${a.time || ''}`.localeCompare(`${b.date}${b.time || ''}`)
+  ));
+};
+
 export default function CaseDetail({
   caseItem,
   onBack,
@@ -51,6 +83,7 @@ export default function CaseDetail({
   const [relatedEmails, setRelatedEmails] = useState([]);
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
+  const [showPastDeadlines, setShowPastDeadlines] = useState(false);
   const status = caseItem.status || 'active';
   const caseColor = caseItem.caseColor || '#0071e3';
   const caseId = caseItem.caseId || '(No case ID)';
@@ -59,15 +92,20 @@ export default function CaseDetail({
     ? caseItem.discoverySets.join(', ')
     : 'Not detected';
   const deadlines = Array.isArray(caseItem.deadlines) ? caseItem.deadlines : [];
-  const primaryDeadline = caseItem.responseDeadlineDate || caseItem.nextDeadline?.date || deadlines[0]?.date || '';
-  const primaryMood = deadlineMood(primaryDeadline);
   const summaryText = caseItem.summary && !caseItem.summary.startsWith(`[${caseId}]`)
     ? caseItem.summary
     : 'Case folder summary will update as CaseSync detects emails, attachments, and deadlines.';
 
-  const deadlineRows = useMemo(() => deadlines
-    .slice()
-    .sort((a, b) => String(a.date || '').localeCompare(String(b.date || ''))), [deadlines]);
+  const deadlineRows = useMemo(() => buildDeadlineRows(deadlines), [deadlines]);
+  const upcomingDeadlineRows = useMemo(() => deadlineRows.filter((item) => item.diff >= 0), [deadlineRows]);
+  const pastDeadlineRows = useMemo(() => deadlineRows.filter((item) => item.diff < 0).reverse(), [deadlineRows]);
+  const primaryDeadlineRow = upcomingDeadlineRows[0] || null;
+  const fallbackDeadlineDate = caseItem.responseDeadlineDate || caseItem.nextDeadline?.date || deadlineRows[0]?.date || '';
+  const primaryDeadline = primaryDeadlineRow?.date || fallbackDeadlineDate;
+  const primaryMood = deadlineMood(primaryDeadline);
+  const visibleRelatedEmails = useMemo(() => relatedEmails.filter((email) => (
+    email.classification !== 'not_relevant'
+  )), [relatedEmails]);
 
   const loadEmails = async () => {
     setEmailLoading(true);
@@ -118,6 +156,19 @@ export default function CaseDetail({
     }
   };
 
+  const markEmailNotRelevant = async (messageId) => {
+    try {
+      await updateCaseEmail(caseId, messageId, {
+        needsReview: false,
+        classification: 'not_relevant',
+        sourceReason: `Marked not relevant for ${caseId}.`,
+      });
+      await loadEmails();
+    } catch (error) {
+      setEmailError(error.response?.data?.error || error.message || 'Failed to update email');
+    }
+  };
+
   return (
     <div className="case-detail-page page-enter" style={{ '--case-color': caseColor }}>
       <div className="case-detail-hero card">
@@ -164,9 +215,10 @@ export default function CaseDetail({
             <h3><CalendarDays size={17} /> Calendar & due deadline</h3>
           </div>
           <div className="case-detail-deadline-large">
-            <span>Primary deadline</span>
+            <span>Next active deadline</span>
             <strong>{formatShortDate(primaryDeadline)}</strong>
-            <em>{primaryMood.label}</em>
+            <em>{primaryDeadlineRow ? primaryMood.label : 'No upcoming deadline detected'}</em>
+            {primaryDeadlineRow?.action ? <small>{primaryDeadlineRow.action}</small> : null}
           </div>
           <div className="case-summary-grid case-detail-summary-grid">
             <div className="case-summary-item">
@@ -186,37 +238,62 @@ export default function CaseDetail({
             </div>
           </div>
           <div className="case-detail-deadline-list">
-            <h4>All deadlines</h4>
-            {deadlineRows.length === 0 ? (
-              <p className="meta">No deadlines detected yet.</p>
-            ) : deadlineRows.map((item) => {
+            <div className="case-detail-section-title">
+              <h4>Upcoming deadlines</h4>
+              <span className="hint-chip">{upcomingDeadlineRows.length} active</span>
+            </div>
+            {upcomingDeadlineRows.length === 0 ? (
+              <p className="meta">No upcoming deadlines detected. Past detections are kept in history below.</p>
+            ) : upcomingDeadlineRows.map((item) => {
               const mood = deadlineMood(item.date);
               return (
                 <div className="case-detail-deadline-row" key={`${item.date}-${item.action}`}>
                   <div>
                     <strong>{formatShortDate(item.date)}</strong>
                     <p>{item.action || 'Review deadline'}</p>
+                    <small>Source: linked email/calendar package · Sets: {discoverySets}</small>
                   </div>
                   <span className={mood.className}>{mood.label}</span>
                 </div>
               );
             })}
+            <details className="case-past-deadlines" open={showPastDeadlines} onToggle={(event) => setShowPastDeadlines(event.currentTarget.open)}>
+              <summary>
+                <span>Past deadline history</span>
+                <em>{pastDeadlineRows.length} hidden by default</em>
+              </summary>
+              {pastDeadlineRows.length === 0 ? (
+                <p className="meta">No past deadlines stored for this case.</p>
+              ) : pastDeadlineRows.map((item) => {
+                const mood = deadlineMood(item.date);
+                return (
+                  <div className="case-detail-deadline-row is-past" key={`past-${item.date}-${item.action}`}>
+                    <div>
+                      <strong>{formatShortDate(item.date)}</strong>
+                      <p>{item.action || 'Review deadline'}</p>
+                      <small>Historical detection. Kept for audit trail, hidden from active planning.</small>
+                    </div>
+                    <span className={mood.className}>{mood.label}</span>
+                  </div>
+                );
+              })}
+            </details>
           </div>
         </section>
 
         <section className="card case-detail-panel case-detail-email-panel">
           <div className="case-detail-panel-head">
             <h3><Mail size={17} /> Related emails</h3>
-            <span className="hint-chip">{relatedEmails.length} linked</span>
+            <span className="hint-chip">{visibleRelatedEmails.length} linked</span>
           </div>
           {emailLoading ? <p className="meta">Loading related emails...</p> : null}
           {emailError ? <div className="case-email-error">{emailError}</div> : null}
-          {!emailLoading && !emailError && relatedEmails.length === 0 ? (
+          {!emailLoading && !emailError && visibleRelatedEmails.length === 0 ? (
             <div className="case-email-empty">No related emails saved yet. Run a scan to attach matching Gmail messages and attachments.</div>
           ) : null}
-          {relatedEmails.length > 0 ? (
+          {visibleRelatedEmails.length > 0 ? (
             <div className="case-detail-email-list">
-              {relatedEmails.map((email) => (
+              {visibleRelatedEmails.map((email) => (
                 <article className={`case-email-item${email.needsReview ? ' needs-review' : ''}`} key={email.messageId}>
                   <div className="case-email-top">
                     <div>
@@ -239,6 +316,9 @@ export default function CaseDetail({
                     ) : null}
                     <button className="btn-ghost" type="button" onClick={() => moveEmailToCase(email.messageId)}>
                       Move to case
+                    </button>
+                    <button className="btn-ghost" type="button" onClick={() => markEmailNotRelevant(email.messageId)}>
+                      Not relevant
                     </button>
                   </div>
                 </article>

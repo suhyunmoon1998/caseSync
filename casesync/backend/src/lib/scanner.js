@@ -676,13 +676,18 @@ export const runAutoScan = async (triggerSource = 'auto') => {
 };
 
 const toDeadlineUi = (item) => {
-  const nextDeadline = (item.deadlines || [])
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const sortedDeadlines = (item.deadlines || [])
     .slice()
-    .sort((a, b) => `${a.date}${a.time || ''}`.localeCompare(`${b.date}${b.time || ''}`))[0] || null;
+    .filter((deadline) => normalizeDate(deadline?.date))
+    .sort((a, b) => `${a.date}${a.time || ''}`.localeCompare(`${b.date}${b.time || ''}`));
+  const nextDeadline = sortedDeadlines.find((deadline) => deadline.date >= todayIso)
+    || sortedDeadlines[sortedDeadlines.length - 1]
+    || null;
 
   return {
     ...item,
-    deadlines: item.deadlines,
+    deadlines: sortedDeadlines,
     nextDeadline,
   };
 };

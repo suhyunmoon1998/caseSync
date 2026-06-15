@@ -3675,6 +3675,13 @@ textarea,
   overflow-wrap: anywhere;
 }
 
+.case-detail-deadline-large small {
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 13px;
+  font-weight: 720;
+  line-height: 1.35;
+}
+
 .case-detail-summary-grid {
   grid-template-columns: 1fr;
 }
@@ -3686,6 +3693,13 @@ textarea,
 
 .case-detail-deadline-list h4 {
   margin: 0;
+}
+
+.case-detail-section-title {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
 }
 
 .case-detail-deadline-row {
@@ -3702,6 +3716,53 @@ textarea,
   color: var(--text-2);
   font-size: 13px;
   overflow-wrap: anywhere;
+}
+
+.case-detail-deadline-row small {
+  color: var(--text-3);
+  display: block;
+  font-size: 11px;
+  line-height: 1.35;
+  margin-top: 5px;
+}
+
+.case-detail-deadline-row.is-past {
+  background: rgba(0, 0, 0, 0.025);
+  opacity: 0.78;
+}
+
+.case-past-deadlines {
+  border: 1px dashed var(--border-soft);
+  border-radius: 16px;
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
+.case-past-deadlines summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  list-style: none;
+}
+
+.case-past-deadlines summary::-webkit-details-marker {
+  display: none;
+}
+
+.case-past-deadlines summary span {
+  color: var(--text-1);
+  font-size: 14px;
+  font-weight: 760;
+}
+
+.case-past-deadlines summary em {
+  color: var(--text-3);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
 }
 
 .case-detail-email-panel {
