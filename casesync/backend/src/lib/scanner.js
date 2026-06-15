@@ -742,14 +742,37 @@ const normalizeDeadlineForPractice = (deadline, item) => {
   };
 };
 
+const activeResponseDeadlineFromCase = (item = {}) => {
+  const normalizedStoredMail = shouldNormalizeStoredMailToElectronic(item);
+  const method = normalizedStoredMail ? 'electronic' : item.proofServiceMethod;
+  const responseDate = responseDeadlineFromService(item.proofServiceDate, method) || item.responseDeadlineDate;
+  if (!normalizeDate(responseDate)) {
+    return null;
+  }
+
+  return {
+    date: responseDate,
+    time: null,
+    action: `Response due: proof deadline (+${responseDeadlineDays(method)} days)`,
+    priority: 'high',
+    ...(normalizedStoredMail ? { serviceMethodCorrected: true } : {}),
+  };
+};
+
 const toDeadlineUi = (item) => {
   const todayIso = new Date().toISOString().slice(0, 10);
-  const sortedDeadlines = (item.deadlines || [])
+  const activeResponseDeadline = activeResponseDeadlineFromCase(item);
+  const sortedDeadlines = [
+    ...(item.deadlines || []),
+    activeResponseDeadline,
+  ]
     .slice()
     .filter((deadline) => normalizeDate(deadline?.date))
     .map((deadline) => normalizeDeadlineForPractice(deadline, item))
     .sort((a, b) => `${a.date}${a.time || ''}`.localeCompare(`${b.date}${b.time || ''}`));
-  const nextDeadline = sortedDeadlines.find((deadline) => deadline.date >= todayIso)
+  const nextDeadline = activeResponseDeadline && activeResponseDeadline.date >= todayIso
+    ? activeResponseDeadline
+    : sortedDeadlines.find((deadline) => deadline.date >= todayIso)
     || sortedDeadlines[sortedDeadlines.length - 1]
     || null;
   const normalizedStoredMail = shouldNormalizeStoredMailToElectronic(item);

@@ -99,8 +99,10 @@ export default function CaseDetail({
   const deadlineRows = useMemo(() => buildDeadlineRows(deadlines), [deadlines]);
   const upcomingDeadlineRows = useMemo(() => deadlineRows.filter((item) => item.diff >= 0), [deadlineRows]);
   const pastDeadlineRows = useMemo(() => deadlineRows.filter((item) => item.diff < 0).reverse(), [deadlineRows]);
-  const primaryDeadlineRow = upcomingDeadlineRows[0] || null;
   const fallbackDeadlineDate = caseItem.responseDeadlineDate || caseItem.nextDeadline?.date || deadlineRows[0]?.date || '';
+  const primaryDeadlineRow = upcomingDeadlineRows.find((item) => item.date === fallbackDeadlineDate)
+    || upcomingDeadlineRows[0]
+    || null;
   const primaryDeadline = primaryDeadlineRow?.date || fallbackDeadlineDate;
   const primaryMood = deadlineMood(primaryDeadline);
   const visibleRelatedEmails = useMemo(() => relatedEmails.filter((email) => (
