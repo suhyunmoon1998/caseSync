@@ -252,6 +252,7 @@ export default function CaseDetail({
                     <strong>{formatShortDate(item.date)}</strong>
                     <p>{item.action || 'Review deadline'}</p>
                     <small>Source: linked email/calendar package · Sets: {discoverySets}</small>
+                    {item.serviceMethodCorrected ? <small>Service method corrected to electronic-service default (+32 days).</small> : null}
                   </div>
                   <span className={mood.className}>{mood.label}</span>
                 </div>

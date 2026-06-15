@@ -21,7 +21,19 @@ const normalizeDate = (value) => {
   if (!value || typeof value !== 'string') {
     return null;
   }
-  return /^\d{4}-\d{2}-\d{2}$/.test(value.trim()) ? value.trim() : null;
+  const normalized = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return null;
+  }
+  const parsed = new Date(`${normalized}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  const [year, month, day] = normalized.split('-').map(Number);
+  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() + 1 !== month || parsed.getUTCDate() !== day) {
+    return null;
+  }
+  return normalized;
 };
 
 const addDaysIso = (date, days) => {
@@ -220,6 +232,12 @@ const dedupeDeadlines = (existing = [], append = []) => {
   return [...map.values()].sort((a, b) => `${a.date}${a.time || ''}`.localeCompare(`${b.date}${b.time || ''}`));
 };
 
+const pickActiveDeadline = (deadlines = []) => {
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const sorted = dedupeDeadlines([], deadlines);
+  return sorted.find((item) => item.date >= todayIso) || sorted[sorted.length - 1] || null;
+};
+
 export const findEventByCaseId = async (auth, calendarId, caseId) => {
   const calendar = google.calendar({ version: 'v3', auth });
   const { data } = await calendar.events.list({
@@ -256,7 +274,7 @@ export const createCaseEvent = async (auth, calendarId, eventData) => {
 
   const calendar = google.calendar({ version: 'v3', auth });
   const sortedDeadlines = dedupeDeadlines([], deadlines);
-  const first = sortedDeadlines[0] || { date: new Date().toISOString().slice(0, 10), time: null };
+  const first = pickActiveDeadline(sortedDeadlines) || { date: new Date().toISOString().slice(0, 10), time: null };
   const { start, end } = toEventTimeRange(first.date, first.time);
 
   const body = {
@@ -313,7 +331,7 @@ export const updateCaseEvent = async (auth, calendarId, eventId, eventData) => {
   );
 
   const summaryTitle = eventData.caseTitle ? `[${eventData.caseId}] ${eventData.caseTitle}` : existing.summary;
-  const first = mergedDeadlines[0] || null;
+  const first = pickActiveDeadline(mergedDeadlines);
   const eventRange = first
     ? toEventTimeRange(first.date, first.time)
     : {

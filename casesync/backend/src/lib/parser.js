@@ -17,7 +17,17 @@ const normalizeDate = (value) => {
 
   const normalized = `${m[1]}-${m[2]}-${m[3]}`;
   const date = new Date(`${normalized}T00:00:00`);
-  return Number.isNaN(date.getTime()) ? null : normalized;
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  if (
+    date.getUTCFullYear() !== Number(m[1])
+    || date.getUTCMonth() + 1 !== Number(m[2])
+    || date.getUTCDate() !== Number(m[3])
+  ) {
+    return null;
+  }
+  return normalized;
 };
 
 const MONTHS = {
@@ -143,17 +153,17 @@ const normalizeServiceMethod = (value) => {
     return null;
   }
 
-  if (method.includes('personal') || method.includes('in person') || method.includes('hand') || method.includes('in-hand')) {
+  if (/\b(personal(?:ly)?|in person|in-person|hand[-\s]?deliver(?:y|ed)?|in-hand)\b/.test(method)) {
     return 'personal';
   }
-  if (method.includes('electronic') || method.includes('email') || method.includes('e-service') || method.includes('e service') || method.includes('e-rogs') || method.includes('e-rog')) {
+  if (/\b(e[-\s]?service|electronic(?:ally)?|email(?:ed|ing)?|e-mail(?:ed|ing)?|via email|electronic mail|electronic transmission)\b/.test(method)) {
     return 'electronic';
   }
-  if (method.includes('mail') || method.includes('postal') || method.includes('served by mail')) {
+  if (/\b(served by mail|service by mail|by mail|u\.?s\.?\s+mail|first[-\s]?class mail|regular mail|postal|mailed)\b/.test(method)) {
     return 'mail';
   }
 
-  return method;
+  return null;
 };
 
 const DISCOVERY_SET_RULES = [
@@ -320,7 +330,10 @@ const parseProofDateFromText = (text = '') => {
       return { date, method: method || null };
     }
 
-    return { date, method: normalizeServiceMethod(sample) || null };
+    const contextStart = Math.max(0, match.index - 120);
+    const contextEnd = Math.min(sample.length, match.index + match[0].length + 120);
+    const methodContext = sample.slice(contextStart, contextEnd);
+    return { date, method: normalizeServiceMethod(methodContext) || null };
   }
 
   return { date: null, method: null };
@@ -412,7 +425,7 @@ export const parseEmail = async ({ subject = '', body = '', from = '', date = ''
   ].filter(Boolean).join('\n');
 
   let data = {
-    caseId: null,
+    caseId: hintCaseId,
     caseTitle: `Case from ${from || 'unknown sender'}`,
     deadlines: [],
     summary: '',
@@ -427,7 +440,7 @@ export const parseEmail = async ({ subject = '', body = '', from = '', date = ''
 
   try {
     const ruleBasedReady = isRuleBasedDiscoveryReady({
-      caseId: data.caseId,
+      caseId: hintCaseId,
       proofServiceDate: data.proofServiceDate,
       discoverySets: data.discoverySets,
       fullText,
@@ -436,6 +449,7 @@ export const parseEmail = async ({ subject = '', body = '', from = '', date = ''
     if (ruleBasedReady) {
       data = {
         ...data,
+        caseId: hintCaseId,
         summary: 'Rule-based discovery service match. CaseSync detected proof of service, discovery set labels, and a case identifier without AI.',
         hasActionableDeadline: true,
         caseConfidence: extractCaseIdConfidence(data.caseId),

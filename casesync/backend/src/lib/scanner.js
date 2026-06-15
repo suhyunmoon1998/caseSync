@@ -56,8 +56,15 @@ const normalizeDate = (value) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
     return null;
   }
-  const d = new Date(normalized);
-  return Number.isNaN(d.getTime()) ? null : normalized;
+  const d = new Date(`${normalized}T00:00:00`);
+  if (Number.isNaN(d.getTime())) {
+    return null;
+  }
+  const [year, month, day] = normalized.split('-').map(Number);
+  if (d.getUTCFullYear() !== year || d.getUTCMonth() + 1 !== month || d.getUTCDate() !== day) {
+    return null;
+  }
+  return normalized;
 };
 
 const parseDate = (value) => {
@@ -138,10 +145,12 @@ const isValidCaseId = (value) => {
 const toStatusString = (value) => (value === 'closed' || value === 'pending' || value === 'active' ? value : 'active');
 
 const firstDeadline = (deadlines = []) => {
-  return (deadlines || [])
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const sorted = (deadlines || [])
     .filter((item) => normalizeDate(item?.date))
     .slice()
-    .sort((a, b) => `${a.date}${a.time || ''}`.localeCompare(`${b.date}${b.time || ''}`))[0] || null;
+    .sort((a, b) => `${a.date}${a.time || ''}`.localeCompare(`${b.date}${b.time || ''}`));
+  return sorted.find((item) => item.date >= todayIso) || sorted[sorted.length - 1] || null;
 };
 
 const buildScanNotification = (type, payload, event) => {
@@ -230,7 +239,8 @@ const buildResponsePackage = ({
   caseId,
   caseTitle,
 }) => {
-  const responseDeadline = buildResponseDeadline(proofServiceDate, proofServiceMethod);
+  const normalizedMethod = proofServiceMethod || 'electronic';
+  const responseDeadline = buildResponseDeadline(proofServiceDate, normalizedMethod);
   if (!responseDeadline) {
     return null;
   }
@@ -274,10 +284,10 @@ const buildResponsePackage = ({
 
   return {
     proofServiceDate,
-    proofServiceMethod: proofServiceMethod || 'electronic',
+    proofServiceMethod: normalizedMethod,
     responseDeadlineDate: responseDeadline.date,
     responseDeadline,
-    responseDeadlineDays: responseDeadlineDays(proofServiceMethod),
+    responseDeadlineDays: responseDeadlineDays(normalizedMethod),
     discoverySets: sets,
     calendarTasks,
     skeletonDocuments: buildSkeletonDocuments(sets),
@@ -482,7 +492,7 @@ export const runAutoScan = async (triggerSource = 'auto') => {
               caseConfidence,
               estimated: shouldTreatAsEstimated(caseId, caseConfidence, parsed.estimated),
               proofServiceDate: parsed.proofServiceDate || '',
-              proofServiceMethod: parsed.proofServiceMethod || '',
+              proofServiceMethod: responsePackage?.proofServiceMethod || parsed.proofServiceMethod || '',
               discoverySets: responsePackage?.discoverySets || [],
               responseDeadlineDate: proofDeadline?.date || '',
               responsePackage,
@@ -621,7 +631,7 @@ export const runAutoScan = async (triggerSource = 'auto') => {
               caseConfidence,
               isEstimated: shouldTreatAsEstimated(matchedCaseId, caseConfidence, parsed.estimated),
               proofServiceDate: parsed.proofServiceDate || folder.proofServiceDate || '',
-              proofServiceMethod: parsed.proofServiceMethod || folder.proofServiceMethod || '',
+              proofServiceMethod: responsePackage?.proofServiceMethod || parsed.proofServiceMethod || folder.proofServiceMethod || '',
               discoverySets: responsePackage?.discoverySets || folder.discoverySets || [],
               responseDeadlineDate: proofDeadline.date,
               responsePackage,
@@ -675,18 +685,82 @@ export const runAutoScan = async (triggerSource = 'auto') => {
   }
 };
 
+const hasExplicitMailSignal = (item = {}) => {
+  const text = [
+    item.caseTitle,
+    item.summary,
+    item.description,
+    item.sourceEventSummary,
+    item.triggerName,
+  ].filter(Boolean).join('\n').toLowerCase();
+
+  return /\b(served by mail|service by mail|by mail|u\.?s\.?\s+mail|first[-\s]?class mail|regular mail|postal|mailed)\b/.test(text);
+};
+
+const hasElectronicSignal = (item = {}) => {
+  const text = [
+    item.caseTitle,
+    item.summary,
+    item.description,
+    item.sourceEventSummary,
+    item.sourceAccount,
+    item.triggerName,
+  ].filter(Boolean).join('\n').toLowerCase();
+
+  return /\b(e[-\s]?service|eservice|electronic|email|e-mail|gmail\.com|jams access|jamsaccess|lacourt|court eservice)\b/.test(text);
+};
+
+const shouldNormalizeStoredMailToElectronic = (item = {}) => {
+  const method = String(item.proofServiceMethod || '').toLowerCase().trim();
+  if (method === 'electronic' || !method) {
+    return true;
+  }
+  if (method !== 'mail') {
+    return false;
+  }
+  return !hasExplicitMailSignal(item) || hasElectronicSignal(item);
+};
+
+const normalizeDeadlineForPractice = (deadline, item) => {
+  if (!deadline || !String(deadline.action || '').includes('+35 days')) {
+    return deadline;
+  }
+  if (!shouldNormalizeStoredMailToElectronic(item)) {
+    return deadline;
+  }
+
+  const correctedDate = addDaysIso(deadline.date, -3);
+  if (!correctedDate) {
+    return deadline;
+  }
+
+  return {
+    ...deadline,
+    date: correctedDate,
+    action: String(deadline.action || '').replace('+35 days', '+32 days'),
+    serviceMethodCorrected: true,
+  };
+};
+
 const toDeadlineUi = (item) => {
   const todayIso = new Date().toISOString().slice(0, 10);
   const sortedDeadlines = (item.deadlines || [])
     .slice()
     .filter((deadline) => normalizeDate(deadline?.date))
+    .map((deadline) => normalizeDeadlineForPractice(deadline, item))
     .sort((a, b) => `${a.date}${a.time || ''}`.localeCompare(`${b.date}${b.time || ''}`));
   const nextDeadline = sortedDeadlines.find((deadline) => deadline.date >= todayIso)
     || sortedDeadlines[sortedDeadlines.length - 1]
     || null;
+  const normalizedStoredMail = shouldNormalizeStoredMailToElectronic(item);
+  const responseDeadlineDate = normalizedStoredMail
+    ? responseDeadlineFromService(item.proofServiceDate, 'electronic') || item.responseDeadlineDate
+    : item.responseDeadlineDate;
 
   return {
     ...item,
+    proofServiceMethod: normalizedStoredMail ? 'electronic' : item.proofServiceMethod,
+    responseDeadlineDate,
     deadlines: sortedDeadlines,
     nextDeadline,
   };
