@@ -4449,3 +4449,63 @@ body::after {
   border: 1px solid rgba(255, 122, 24, 0.32);
   box-shadow: 0 18px 44px rgba(255, 122, 24, 0.20);
 }
+
+/* Fix scan log table overflow: keep dashboard tables readable in narrow cards. */
+.scan-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  border-radius: 14px;
+}
+
+.scan-table-wrap .table {
+  width: max-content;
+  min-width: 640px;
+  table-layout: auto;
+}
+
+.scan-table-wrap .table th,
+.scan-table-wrap .table td {
+  white-space: nowrap;
+  word-break: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 10px 14px;
+}
+
+.scan-table-wrap .table th:nth-child(1),
+.scan-table-wrap .table td:nth-child(1) { min-width: 120px; }
+.scan-table-wrap .table th:nth-child(2),
+.scan-table-wrap .table td:nth-child(2) { min-width: 92px; }
+.scan-table-wrap .table th:nth-child(3),
+.scan-table-wrap .table td:nth-child(3),
+.scan-table-wrap .table th:nth-child(4),
+.scan-table-wrap .table td:nth-child(4),
+.scan-table-wrap .table th:nth-child(5),
+.scan-table-wrap .table td:nth-child(5),
+.scan-table-wrap .table th:nth-child(6),
+.scan-table-wrap .table td:nth-child(6) {
+  min-width: 82px;
+  text-align: right;
+}
+
+.scan-table-wrap .table th:nth-child(2),
+.scan-table-wrap .table td:nth-child(2) {
+  text-align: left;
+}
+
+.scan-table-wrap thead th {
+  background: rgba(255, 252, 248, 0.96);
+  box-shadow: 0 1px 0 rgba(17, 17, 17, 0.08);
+}
+
+.canvas-view .layout-grid.two-col:has(.scan-table-wrap) {
+  grid-template-columns: minmax(320px, 0.82fr) minmax(420px, 1.18fr);
+}
+
+@media (max-width: 1180px) {
+  .canvas-view .layout-grid.two-col:has(.scan-table-wrap) {
+    grid-template-columns: 1fr;
+  }
+}
