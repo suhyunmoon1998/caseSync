@@ -4509,3 +4509,65 @@ body::after {
     grid-template-columns: 1fr;
   }
 }
+
+/* Commercial calendar safety controls. */
+.case-calendar-controls {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(17, 17, 17, 0.09);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.case-setting-toggle {
+  align-items: flex-start;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(255, 122, 24, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.70);
+}
+
+.case-setting-toggle input {
+  margin-top: 3px;
+  accent-color: #ff7a18;
+}
+
+.case-setting-toggle span {
+  display: grid;
+  gap: 3px;
+}
+
+.case-setting-toggle strong {
+  font-size: 13px;
+}
+
+.case-setting-toggle small,
+.case-update-history-row small,
+.case-update-history-row span {
+  color: var(--text-3);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.case-update-history {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.case-update-history-row {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.case-update-history-row strong {
+  font-size: 13px;
+}

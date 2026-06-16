@@ -10,6 +10,7 @@ import {
 import {
   getCaseEmailRecords,
   updateCaseEmailRecord,
+  updateCaseRecordSettings,
 } from '../lib/db.js';
 
 const router = express.Router();
@@ -138,6 +139,23 @@ router.patch('/:caseId/status', async (req, res) => {
   } catch (error) {
     console.error('Update case status failed', error);
     res.status(500).json({ error: 'Failed to update case status' });
+  }
+});
+
+router.patch('/:caseId/settings', async (req, res) => {
+  try {
+    const caseId = decodeURIComponent(req.params.caseId || '').trim();
+    const result = await updateCaseRecordSettings(caseId, {
+      calendarAutoEnabled: req.body?.calendarAutoEnabled,
+      reviewBeforeCalendarUpdate: req.body?.reviewBeforeCalendarUpdate,
+    });
+    if (!result) {
+      return res.status(404).json({ error: 'Case not found' });
+    }
+    res.json({ success: true, case: result });
+  } catch (error) {
+    console.error('Update case settings failed', error);
+    res.status(500).json({ error: 'Failed to update case settings' });
   }
 });
 

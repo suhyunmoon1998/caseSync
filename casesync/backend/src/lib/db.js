@@ -102,6 +102,9 @@ const normalizeCaseRow = (row) => ({
   proofServiceMethod: row.proof_service_method || '',
   responseDeadlineDate: row.response_deadline_date || '',
   discoverySets: row.discovery_sets || [],
+  calendarAutoEnabled: row.calendar_auto_enabled !== false,
+  reviewBeforeCalendarUpdate: Boolean(row.review_before_calendar_update),
+  calendarUpdateHistory: row.calendar_update_history || [],
 });
 
 const normalizeCaseEmailRow = (row) => ({
@@ -241,10 +244,16 @@ const initPostgresDb = async () => {
       proof_service_method text,
       response_deadline_date text,
       discovery_sets text[] not null default '{}',
+      calendar_auto_enabled boolean not null default true,
+      review_before_calendar_update boolean not null default false,
+      calendar_update_history jsonb not null default '[]'::jsonb,
       updated_at timestamptz not null default now()
     )
   `);
   await pg.query('alter table cases add column if not exists case_color text');
+  await pg.query('alter table cases add column if not exists calendar_auto_enabled boolean not null default true');
+  await pg.query('alter table cases add column if not exists review_before_calendar_update boolean not null default false');
+  await pg.query("alter table cases add column if not exists calendar_update_history jsonb not null default '[]'::jsonb");
   await pg.query(`
     create table if not exists case_emails (
       message_id text primary key,
@@ -753,6 +762,12 @@ const mergeCaseRecords = (existing = {}, incoming = {}) => {
     proofServiceDate: firstNonEmpty(incoming.proofServiceDate, existing.proofServiceDate, ''),
     proofServiceMethod: firstNonEmpty(incoming.proofServiceMethod, existing.proofServiceMethod, ''),
     responseDeadlineDate: firstNonEmpty(incoming.responseDeadlineDate, existing.responseDeadlineDate, ''),
+    calendarAutoEnabled: incoming.calendarAutoEnabled ?? existing.calendarAutoEnabled ?? true,
+    reviewBeforeCalendarUpdate: incoming.reviewBeforeCalendarUpdate ?? existing.reviewBeforeCalendarUpdate ?? false,
+    calendarUpdateHistory: [
+      ...(Array.isArray(incoming.calendarUpdateHistory) ? incoming.calendarUpdateHistory : []),
+      ...(Array.isArray(existing.calendarUpdateHistory) ? existing.calendarUpdateHistory : []),
+    ].slice(0, 20),
     discoverySets: [...new Set([
       ...(Array.isArray(existing.discoverySets) ? existing.discoverySets : []),
       ...(Array.isArray(incoming.discoverySets) ? incoming.discoverySets : []),
@@ -786,6 +801,18 @@ export const upsertCaseRecord = async (record) => {
     proofServiceMethod: record.proofServiceMethod || '',
     responseDeadlineDate: record.responseDeadlineDate || '',
     discoverySets: Array.isArray(record.discoverySets) ? record.discoverySets : [],
+    calendarAutoEnabled: record.calendarAutoEnabled !== false,
+    reviewBeforeCalendarUpdate: Boolean(record.reviewBeforeCalendarUpdate),
+    calendarUpdateHistory: [
+      {
+        at: record.lastUpdated || new Date().toISOString(),
+        action: record.calendarAction || 'Case updated',
+        source: record.sourceEmail || record.sourceAccount || record.triggerName || 'CaseSync',
+        deadline: record.responseDeadlineDate || '',
+        proofServiceDate: record.proofServiceDate || '',
+      },
+      ...(Array.isArray(record.calendarUpdateHistory) ? record.calendarUpdateHistory : []),
+    ].filter((item) => item?.action).slice(0, 20),
   };
 
   if (!payload.caseId) {
@@ -798,10 +825,11 @@ export const upsertCaseRecord = async (record) => {
         case_id, event_id, case_title, case_color, status, trigger_id, trigger_name, html_link, summary,
         description, last_updated, case_confidence, is_estimated, deadlines, source_calendar_id,
         source_account, source_event_summary, start_payload, end_payload, proof_service_date,
-        proof_service_method, response_deadline_date, discovery_sets, updated_at
+        proof_service_method, response_deadline_date, discovery_sets, calendar_auto_enabled,
+        review_before_calendar_update, calendar_update_history, updated_at
        ) values (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb, $15,
-        $16, $17, $18::jsonb, $19::jsonb, $20, $21, $22, $23, now()
+        $16, $17, $18::jsonb, $19::jsonb, $20, $21, $22, $23, $24, $25, $26::jsonb, now()
        )
        on conflict (case_id) do update set
         event_id = coalesce(nullif(excluded.event_id, ''), cases.event_id),
@@ -860,6 +888,16 @@ export const upsertCaseRecord = async (record) => {
           select coalesce(array_agg(distinct item), '{}'::text[])
           from unnest(coalesce(cases.discovery_sets, '{}'::text[]) || coalesce(excluded.discovery_sets, '{}'::text[])) as merged_sets(item)
         ),
+        calendar_auto_enabled = cases.calendar_auto_enabled,
+        review_before_calendar_update = cases.review_before_calendar_update,
+        calendar_update_history = (
+          select coalesce(jsonb_agg(item), '[]'::jsonb)
+          from (
+            select item
+            from jsonb_array_elements(coalesce(excluded.calendar_update_history, '[]'::jsonb) || coalesce(cases.calendar_update_history, '[]'::jsonb)) with ordinality as merged(item, ord)
+            limit 20
+          ) history
+        ),
         updated_at = now()
        returning *`,
       [
@@ -886,6 +924,9 @@ export const upsertCaseRecord = async (record) => {
         payload.proofServiceMethod,
         payload.responseDeadlineDate,
         payload.discoverySets,
+        payload.calendarAutoEnabled,
+        payload.reviewBeforeCalendarUpdate,
+        JSON.stringify(payload.calendarUpdateHistory),
       ],
     );
     return normalizeCaseRow(rows[0]);
@@ -934,6 +975,67 @@ export const updateCaseRecordStatus = async (caseId, status) => {
     return null;
   }
   db.data.cases[index] = { ...db.data.cases[index], status, updatedAt: new Date().toISOString() };
+  await write();
+  return db.data.cases[index];
+};
+
+export const updateCaseRecordSettings = async (caseId, settings = {}) => {
+  const targetCaseId = String(caseId || '').trim();
+  if (!targetCaseId) {
+    return null;
+  }
+
+  const hasAuto = settings.calendarAutoEnabled !== undefined;
+  const hasReview = settings.reviewBeforeCalendarUpdate !== undefined;
+  const nextAuto = hasAuto ? Boolean(settings.calendarAutoEnabled) : null;
+  const nextReview = hasReview ? Boolean(settings.reviewBeforeCalendarUpdate) : null;
+  const historyEntry = {
+    at: new Date().toISOString(),
+    action: 'Calendar settings updated',
+    source: 'User',
+    detail: [
+      hasAuto ? `Auto calendar updates ${nextAuto ? 'on' : 'off'}` : null,
+      hasReview ? `Review before calendar update ${nextReview ? 'on' : 'off'}` : null,
+    ].filter(Boolean).join('; '),
+  };
+
+  if (storageMode === 'postgres') {
+    const { rows } = await getPool().query(
+      `update cases set
+        calendar_auto_enabled = coalesce($2, calendar_auto_enabled),
+        review_before_calendar_update = coalesce($3, review_before_calendar_update),
+        calendar_update_history = (
+          select coalesce(jsonb_agg(item), '[]'::jsonb)
+          from (
+            select item
+            from jsonb_array_elements($4::jsonb || coalesce(calendar_update_history, '[]'::jsonb)) as merged(item)
+            limit 20
+          ) history
+        ),
+        updated_at = now()
+       where case_id = $1
+       returning *`,
+      [targetCaseId, nextAuto, nextReview, JSON.stringify([historyEntry])],
+    );
+    return rows[0] ? normalizeCaseRow(rows[0]) : null;
+  }
+
+  await db.read();
+  db.data = sanitizeData(db.data || {});
+  const index = db.data.cases.findIndex((item) => item.caseId === targetCaseId);
+  if (index === -1) {
+    return null;
+  }
+  db.data.cases[index] = {
+    ...db.data.cases[index],
+    ...(hasAuto ? { calendarAutoEnabled: nextAuto } : {}),
+    ...(hasReview ? { reviewBeforeCalendarUpdate: nextReview } : {}),
+    calendarUpdateHistory: [
+      historyEntry,
+      ...(Array.isArray(db.data.cases[index].calendarUpdateHistory) ? db.data.cases[index].calendarUpdateHistory : []),
+    ].slice(0, 20),
+    updatedAt: new Date().toISOString(),
+  };
   await write();
   return db.data.cases[index];
 };

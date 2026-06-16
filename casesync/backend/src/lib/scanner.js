@@ -295,6 +295,20 @@ const buildResponsePackage = ({
   };
 };
 
+const shouldWriteCalendarForCase = (caseRecord = {}) => (
+  caseRecord.calendarAutoEnabled !== false && caseRecord.reviewBeforeCalendarUpdate !== true
+);
+
+const calendarHoldReason = (caseRecord = {}) => {
+  if (caseRecord.calendarAutoEnabled === false) {
+    return 'Calendar update held because auto calendar updates are off.';
+  }
+  if (caseRecord.reviewBeforeCalendarUpdate === true) {
+    return 'Calendar update held for user review.';
+  }
+  return '';
+};
+
 const storeCaseEmail = async ({
   email,
   account,
@@ -499,6 +513,42 @@ export const runAutoScan = async (triggerSource = 'auto') => {
               raw: email,
             };
 
+            const storedCases = await getCaseRecordsFromDb();
+            const storedCase = storedCases.find((item) => item.caseId === caseId);
+            const canWriteCalendar = shouldWriteCalendarForCase(storedCase);
+            if (!canWriteCalendar) {
+              await upsertCaseRecord({
+                ...(storedCase || {}),
+                ...payload,
+                id: storedCase?.id || caseId,
+                htmlLink: storedCase?.htmlLink || '',
+                description: storedCase?.description || '',
+                lastUpdated: new Date().toISOString(),
+                sourceAccount: account.email,
+                sourceCalendarId: storedCase?.sourceCalendarId || calendarId,
+                sourceEventSummary: storedCase?.sourceEventSummary || '',
+                start: storedCase?.start || null,
+                end: storedCase?.end || null,
+                calendarAutoEnabled: storedCase?.calendarAutoEnabled,
+                reviewBeforeCalendarUpdate: storedCase?.reviewBeforeCalendarUpdate,
+                calendarAction: calendarHoldReason(storedCase),
+              });
+              await storeCaseEmail({
+                email,
+                account,
+                trigger,
+                caseId,
+                parsed,
+                caseConfidence,
+                classification: 'review_needed',
+                needsReview: true,
+                sourceReason: calendarHoldReason(storedCase),
+              });
+              await markEmailProcessed(email.id);
+              summary.casesUpdated += 1;
+              continue;
+            }
+
             const existing = await findEventByCaseId(auth, calendarId, caseId);
             if (existing?.id) {
               const updated = await updateCaseEvent(auth, calendarId, existing.id, payload);
@@ -514,6 +564,7 @@ export const runAutoScan = async (triggerSource = 'auto') => {
                 sourceEventSummary: updated.summary || '',
                 start: updated.start || null,
                 end: updated.end || null,
+                calendarAction: 'Google Calendar updated from Gmail scan',
               });
               summary.casesUpdated += 1;
               const notification = buildScanNotification('updated_case', payload, updated);
@@ -534,6 +585,7 @@ export const runAutoScan = async (triggerSource = 'auto') => {
                 sourceEventSummary: created.summary || '',
                 start: created.start || null,
                 end: created.end || null,
+                calendarAction: 'Google Calendar event created from Gmail scan',
               });
               summary.casesCreated += 1;
               const notification = buildScanNotification('new_case', payload, created);
@@ -617,6 +669,34 @@ export const runAutoScan = async (triggerSource = 'auto') => {
             });
 
             if (!proofDeadline) {
+              continue;
+            }
+
+            if (!shouldWriteCalendarForCase(folder)) {
+              await upsertCaseRecord({
+                ...folder,
+                caseId: matchedCaseId,
+                caseTitle: folder.caseTitle || parsed.caseTitle || matchedCaseId,
+                caseColor: folder.caseColor || '',
+                triggerName: folder.triggerName || 'Case folder search',
+                summary: parsed.summary || folder.summary || '',
+                deadlines,
+                caseConfidence,
+                isEstimated: shouldTreatAsEstimated(matchedCaseId, caseConfidence, parsed.estimated),
+                proofServiceDate: parsed.proofServiceDate || folder.proofServiceDate || '',
+                proofServiceMethod: responsePackage?.proofServiceMethod || parsed.proofServiceMethod || folder.proofServiceMethod || '',
+                discoverySets: responsePackage?.discoverySets || folder.discoverySets || [],
+                responseDeadlineDate: proofDeadline.date,
+                responsePackage,
+                sourceAccount: account.email,
+                sourceCalendarId: folder.sourceCalendarId || defaultCalendarId,
+                sourceEventSummary: folder.sourceEventSummary || '',
+                lastUpdated: new Date().toISOString(),
+                calendarAutoEnabled: folder.calendarAutoEnabled,
+                reviewBeforeCalendarUpdate: folder.reviewBeforeCalendarUpdate,
+                calendarAction: calendarHoldReason(folder),
+              });
+              summary.casesUpdated += 1;
               continue;
             }
 

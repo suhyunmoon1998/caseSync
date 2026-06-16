@@ -94,6 +94,11 @@ export const updateCaseStatus = async (caseId, status) => {
   return response.data;
 };
 
+export const updateCaseSettings = async (caseId, payload) => {
+  const response = await client.patch(`/api/cases/${encodeURIComponent(caseId)}/settings`, payload);
+  return response.data.case;
+};
+
 export const deleteCase = async (caseId) => {
   const response = await client.delete(`/api/cases/${encodeURIComponent(caseId)}`);
   return response.data;

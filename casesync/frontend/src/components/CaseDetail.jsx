@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, CalendarDays, CheckCircle2, ExternalLink, Mail, RefreshCcw, Trash2 } from 'lucide-react';
 import { differenceInCalendarDays, format, isValid, parseISO } from 'date-fns';
-import { getCaseEmails, updateCaseEmail } from '../utils/api';
+import { getCaseEmails, updateCaseEmail, updateCaseSettings } from '../utils/api';
 
 const parseDate = (value) => {
   if (!value) {
@@ -84,6 +84,12 @@ export default function CaseDetail({
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [showPastDeadlines, setShowPastDeadlines] = useState(false);
+  const [caseSettings, setCaseSettings] = useState({
+    calendarAutoEnabled: caseItem.calendarAutoEnabled !== false,
+    reviewBeforeCalendarUpdate: Boolean(caseItem.reviewBeforeCalendarUpdate),
+    calendarUpdateHistory: Array.isArray(caseItem.calendarUpdateHistory) ? caseItem.calendarUpdateHistory : [],
+  });
+  const [settingsSaving, setSettingsSaving] = useState(false);
   const status = caseItem.status || 'active';
   const caseColor = caseItem.caseColor || '#0071e3';
   const caseId = caseItem.caseId || '(No case ID)';
@@ -125,6 +131,33 @@ export default function CaseDetail({
   useEffect(() => {
     void loadEmails();
   }, [caseId]);
+
+  useEffect(() => {
+    setCaseSettings({
+      calendarAutoEnabled: caseItem.calendarAutoEnabled !== false,
+      reviewBeforeCalendarUpdate: Boolean(caseItem.reviewBeforeCalendarUpdate),
+      calendarUpdateHistory: Array.isArray(caseItem.calendarUpdateHistory) ? caseItem.calendarUpdateHistory : [],
+    });
+  }, [caseItem]);
+
+  const saveCaseSettings = async (patch) => {
+    const next = { ...caseSettings, ...patch };
+    setCaseSettings(next);
+    setSettingsSaving(true);
+    try {
+      const updated = await updateCaseSettings(caseId, patch);
+      setCaseSettings({
+        calendarAutoEnabled: updated.calendarAutoEnabled !== false,
+        reviewBeforeCalendarUpdate: Boolean(updated.reviewBeforeCalendarUpdate),
+        calendarUpdateHistory: Array.isArray(updated.calendarUpdateHistory) ? updated.calendarUpdateHistory : [],
+      });
+    } catch (error) {
+      setEmailError(error.response?.data?.error || error.message || 'Failed to update case settings');
+      setCaseSettings(caseSettings);
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
 
   const markEmailReviewed = async (messageId) => {
     try {
@@ -239,6 +272,34 @@ export default function CaseDetail({
               <small>{caseItem.sourceAccount || caseItem.sourceCalendarId || 'CaseSync'}</small>
             </div>
           </div>
+          <div className="case-calendar-controls">
+            <div className="case-detail-section-title">
+              <h4>Calendar controls</h4>
+              {settingsSaving ? <span className="hint-chip">Saving...</span> : <span className="hint-chip">User controlled</span>}
+            </div>
+            <label className="case-setting-toggle">
+              <input
+                type="checkbox"
+                checked={caseSettings.calendarAutoEnabled}
+                onChange={(event) => saveCaseSettings({ calendarAutoEnabled: event.target.checked })}
+              />
+              <span>
+                <strong>Auto-update Google Calendar</strong>
+                <small>When on, confirmed deadline packages can update Google Calendar automatically.</small>
+              </span>
+            </label>
+            <label className="case-setting-toggle">
+              <input
+                type="checkbox"
+                checked={caseSettings.reviewBeforeCalendarUpdate}
+                onChange={(event) => saveCaseSettings({ reviewBeforeCalendarUpdate: event.target.checked })}
+              />
+              <span>
+                <strong>Review before calendar update</strong>
+                <small>When on, CaseSync saves the email and deadline but holds calendar changes for review.</small>
+              </span>
+            </label>
+          </div>
           <div className="case-detail-deadline-list">
             <div className="case-detail-section-title">
               <h4>Upcoming deadlines</h4>
@@ -334,6 +395,24 @@ export default function CaseDetail({
       <section className="card case-detail-panel">
         <h3>Summary</h3>
         <p className="meta">{summaryText}</p>
+        <details className="case-raw-notes" open>
+          <summary>Calendar update history</summary>
+          {caseSettings.calendarUpdateHistory.length === 0 ? (
+            <p className="meta">No calendar update history yet.</p>
+          ) : (
+            <div className="case-update-history">
+              {caseSettings.calendarUpdateHistory.slice(0, 8).map((entry, index) => (
+                <div className="case-update-history-row" key={`${entry.at || index}-${entry.action || index}`}>
+                  <strong>{entry.action || 'Case updated'}</strong>
+                  <span>{entry.at ? formatEmailDate(entry.at) : 'Date unknown'}</span>
+                  {entry.deadline ? <small>Deadline: {entry.deadline}</small> : null}
+                  {entry.detail ? <small>{entry.detail}</small> : null}
+                  {entry.source ? <small>Source: {entry.source}</small> : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </details>
         {caseItem.description ? (
           <details className="case-raw-notes">
             <summary>Full calendar notes</summary>
