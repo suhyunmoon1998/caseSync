@@ -4335,6 +4335,24 @@ body::after {
   box-shadow: 0 26px 70px rgba(17, 17, 17, 0.18), 0 16px 44px rgba(255, 122, 24, 0.20);
 }
 
+.case-detail-deadline-large,
+.case-detail-deadline-large span,
+.case-detail-deadline-large em,
+.case-detail-deadline-large strong,
+.case-detail-deadline-large small {
+  color: #fff;
+}
+
+.case-detail-deadline-large strong {
+  text-shadow: 0 4px 22px rgba(0, 0, 0, 0.44);
+}
+
+.case-detail-deadline-large span,
+.case-detail-deadline-large em,
+.case-detail-deadline-large small {
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.36);
+}
+
 .case-email-item,
 .case-detail-deadline-row,
 .case-summary-item,
