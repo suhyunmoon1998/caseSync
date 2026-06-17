@@ -4201,23 +4201,85 @@ body::after {
 body {
   color: #0b0b0d;
   background:
-    radial-gradient(circle at 10% 8%, rgba(255, 122, 24, 0.22), transparent 30%),
-    radial-gradient(circle at 88% 3%, rgba(17, 17, 17, 0.10), transparent 28%),
-    radial-gradient(circle at 74% 84%, rgba(255, 157, 46, 0.16), transparent 32%),
-    linear-gradient(135deg, #ffffff 0%, #fff8f1 44%, #f5f1ed 100%);
+    radial-gradient(circle at 12% 8%, rgba(255, 122, 24, 0.24), transparent 30%),
+    radial-gradient(circle at 88% 3%, rgba(255, 255, 255, 0.08), transparent 24%),
+    radial-gradient(circle at 70% 86%, rgba(255, 122, 24, 0.13), transparent 34%),
+    linear-gradient(135deg, #050506 0%, #0b0b0d 46%, #1a0d03 100%);
 }
 
 body::before {
-  opacity: 0.34;
+  opacity: 0.22;
   background-image:
-    linear-gradient(rgba(17, 17, 17, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 122, 24, 0.10) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 122, 24, 0.08) 1px, transparent 1px);
 }
 
 body::after {
   background:
-    linear-gradient(110deg, transparent 0%, rgba(255, 122, 24, 0.16) 46%, transparent 52%) 0 0 / 240% 100%,
-    radial-gradient(ellipse at 50% 120%, rgba(17, 17, 17, 0.08), transparent 54%);
+    linear-gradient(110deg, transparent 0%, rgba(255, 122, 24, 0.13) 46%, transparent 52%) 0 0 / 240% 100%,
+    radial-gradient(ellipse at 50% 120%, rgba(255, 122, 24, 0.10), transparent 54%);
+}
+
+.app-shell-clean {
+  background: transparent;
+}
+
+.clean-header {
+  color: #fff;
+  background:
+    linear-gradient(135deg, rgba(8, 8, 9, 0.92), rgba(22, 12, 5, 0.82)),
+    radial-gradient(circle at 8% 18%, rgba(255, 122, 24, 0.20), transparent 28%);
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+}
+
+.clean-brand strong {
+  background: none;
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+}
+
+.clean-brand span,
+.clean-header .account-pill {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.main-clean {
+  background:
+    radial-gradient(circle at 18% 10%, rgba(255, 122, 24, 0.10), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 36%);
+}
+
+.canvas-workspace {
+  color: #f8f2ed;
+}
+
+.canvas-sidebar,
+.canvas-stage {
+  background:
+    linear-gradient(145deg, rgba(15, 15, 17, 0.88), rgba(35, 19, 8, 0.72)),
+    radial-gradient(circle at top left, rgba(255, 122, 24, 0.16), transparent 34%);
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 34px 100px rgba(0, 0, 0, 0.40), 0 14px 44px rgba(255, 122, 24, 0.11);
+}
+
+.canvas-sidebar-title span,
+.canvas-sidebar-footer .connected-pill {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.canvas-sidebar-title strong {
+  background: none;
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+}
+
+.canvas-stage > .commercial-onboarding,
+.canvas-stage-head {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(255, 248, 241, 0.82)),
+    radial-gradient(circle at top left, rgba(255, 122, 24, 0.10), transparent 34%);
+  color: #0b0b0d;
 }
 
 .clean-header,
@@ -4391,6 +4453,50 @@ body::after {
 .toast {
   border-color: rgba(255, 122, 24, 0.30);
   box-shadow: 0 24px 60px rgba(17, 17, 17, 0.12), 0 12px 34px rgba(255, 122, 24, 0.12);
+}
+
+/* Focus mode: keep the logged-in workspace dark so the white work cards stand forward. */
+.app-shell-clean .clean-header {
+  color: #fff;
+  background:
+    linear-gradient(135deg, rgba(8, 8, 9, 0.94), rgba(24, 13, 6, 0.86)),
+    radial-gradient(circle at 8% 18%, rgba(255, 122, 24, 0.20), transparent 28%);
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+}
+
+.app-shell-clean .clean-brand strong,
+.app-shell-clean .canvas-sidebar-title strong {
+  background: none;
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+}
+
+.app-shell-clean .clean-brand span,
+.app-shell-clean .canvas-sidebar-title span,
+.app-shell-clean .canvas-sidebar-footer .connected-pill {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.app-shell-clean .canvas-sidebar,
+.app-shell-clean .canvas-stage {
+  background:
+    linear-gradient(145deg, rgba(13, 13, 15, 0.92), rgba(35, 19, 8, 0.78)),
+    radial-gradient(circle at top left, rgba(255, 122, 24, 0.16), transparent 34%);
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 34px 100px rgba(0, 0, 0, 0.40), 0 14px 44px rgba(255, 122, 24, 0.11);
+}
+
+.app-shell-clean .canvas-workspace {
+  color: #f8f2ed;
+}
+
+.app-shell-clean .canvas-stage > .commercial-onboarding,
+.app-shell-clean .canvas-stage-head {
+  color: #0b0b0d;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(255, 248, 241, 0.82)),
+    radial-gradient(circle at top left, rgba(255, 122, 24, 0.10), transparent 34%);
 }
 
 /* Main homepage: premium black landing screen. */
