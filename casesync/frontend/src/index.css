@@ -4499,6 +4499,69 @@ body::after {
     radial-gradient(circle at top left, rgba(255, 122, 24, 0.10), transparent 34%);
 }
 
+/* Crisp focus surfaces: reduce haze and make each working window read as a clear panel. */
+.app-shell-clean .canvas-sidebar,
+.app-shell-clean .canvas-stage {
+  background:
+    linear-gradient(145deg, rgba(12, 12, 14, 0.98), rgba(29, 16, 8, 0.94)),
+    radial-gradient(circle at top left, rgba(255, 122, 24, 0.12), transparent 30%);
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  box-shadow:
+    0 38px 110px rgba(0, 0, 0, 0.56),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  backdrop-filter: none;
+}
+
+.app-shell-clean .card,
+.app-shell-clean .stat,
+.app-shell-clean .account-panel,
+.app-shell-clean .notification-panel,
+.app-shell-clean .calendar-month,
+.app-shell-clean .case-detail-hero,
+.app-shell-clean .case-detail-panel,
+.app-shell-clean .case-folder-card,
+.app-shell-clean .commercial-onboarding,
+.app-shell-clean .canvas-stage-head {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 246, 242, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  box-shadow:
+    0 22px 52px rgba(0, 0, 0, 0.24),
+    0 0 0 1px rgba(17, 17, 17, 0.08);
+  backdrop-filter: none;
+}
+
+.app-shell-clean .canvas-nav-item,
+.app-shell-clean .canvas-alert-empty,
+.app-shell-clean .canvas-alert-item,
+.app-shell-clean .canvas-sidebar-footer .connected-pill {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
+  backdrop-filter: none;
+}
+
+.app-shell-clean .canvas-nav-item.is-active {
+  background: linear-gradient(135deg, #0b0b0d 0%, #24140a 42%, #ff7a18 100%);
+  border-color: rgba(255, 255, 255, 0.70);
+  box-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.36),
+    0 10px 30px rgba(255, 122, 24, 0.30);
+}
+
+.app-shell-clean .input,
+.app-shell-clean .btn-ghost,
+.app-shell-clean .hint-chip,
+.app-shell-clean .badge,
+.app-shell-clean .calendar-range-chip,
+.app-shell-clean .onboarding-steps span,
+.app-shell-clean .landing-proof-points span {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(17, 17, 17, 0.13);
+  box-shadow: 0 8px 20px rgba(17, 17, 17, 0.10);
+  backdrop-filter: none;
+}
+
 /* Main homepage: premium black landing screen. */
 .connect-screen {
   color: #ffffff;
