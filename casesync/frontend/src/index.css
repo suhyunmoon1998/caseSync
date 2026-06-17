@@ -4637,8 +4637,255 @@ body::after {
   margin-top: 10px;
 }
 
+/* SOP operations workspace: missed-trigger audit plus master workflow map. */
+.sop-page {
+  display: grid;
+  gap: 14px;
+}
+
+.sop-hero {
+  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 18px;
+  overflow: hidden;
+  position: relative;
+}
+
+.sop-hero::before {
+  content: "";
+  position: absolute;
+  inset: auto -10% -45% 45%;
+  height: 210px;
+  background: radial-gradient(circle, rgba(255, 122, 24, 0.28), transparent 66%);
+  pointer-events: none;
+}
+
+.sop-hero h3 {
+  margin: 4px 0 8px;
+  max-width: 780px;
+  font-size: clamp(24px, 3.2vw, 44px);
+  letter-spacing: -0.06em;
+  line-height: 0.98;
+}
+
+.sop-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.sop-hero-stats div {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.sop-hero-stats strong {
+  font-size: 26px;
+  letter-spacing: -0.05em;
+}
+
+.sop-hero-stats span,
+.sop-table td,
+.sop-step p,
+.sop-check span {
+  color: var(--text-2);
+}
+
+.sop-board {
+  display: grid;
+  grid-template-columns: minmax(360px, 1.15fr) repeat(2, minmax(280px, 0.9fr));
+  gap: 14px;
+  align-items: stretch;
+}
+
+.sop-panel {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.sop-panel-priority {
+  border-color: rgba(255, 122, 24, 0.34);
+  box-shadow: 0 24px 70px rgba(255, 122, 24, 0.13);
+}
+
+.sop-panel-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+}
+
+.sop-panel-head svg {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  color: #ff7a18;
+}
+
+.sop-panel-head h3 {
+  margin: 0 0 3px;
+}
+
+.sop-check-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.sop-check-grid > div,
+.sop-step,
+.sop-warning-strip,
+.sop-source-row,
+.sop-migration-grid .sop-check {
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.sop-check-grid > div {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.sop-check {
+  align-items: flex-start;
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.sop-check input {
+  margin-top: 2px;
+  accent-color: #ff7a18;
+}
+
+.sop-warning-strip {
+  align-items: flex-start;
+  display: flex;
+  gap: 9px;
+  padding: 12px;
+  color: #421b00;
+  background: linear-gradient(135deg, rgba(255, 122, 24, 0.18), rgba(255, 255, 255, 0.78));
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1.45;
+}
+
+.sop-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sop-step-list {
+  display: grid;
+  gap: 8px;
+}
+
+.sop-step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 9px;
+  padding: 10px;
+}
+
+.sop-step span {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #111;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.sop-step p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.sop-source-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+}
+
+.sop-source-row a {
+  color: #b84900;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.sop-master-card {
+  display: grid;
+  gap: 12px;
+}
+
+.sop-table-wrap {
+  overflow: auto;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 18px;
+}
+
+.sop-table {
+  width: 100%;
+  min-width: 1160px;
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.64);
+}
+
+.sop-table th,
+.sop-table td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.07);
+  text-align: left;
+  vertical-align: top;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.sop-table th {
+  color: var(--text-1);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sop-migration-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sop-migration-grid .sop-check {
+  padding: 11px;
+}
+
 @media (max-width: 720px) {
   .case-ai-analysis-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1180px) {
+  .sop-hero,
+  .sop-board,
+  .sop-check-grid,
+  .sop-migration-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -222,6 +222,68 @@ export default function Triggers({ accounts, onSaved }) {
     setPatternDraft('');
   };
 
+  const applyCourtPreset = () => {
+    setEditing(null);
+    setName('Court / CMC / hearing notices');
+    setSenderEmails([]);
+    setKeywords([
+      'court notice',
+      'notice of hearing',
+      'hearing notice',
+      'case management conference',
+      'CMC',
+      'case management statement',
+      'minute order',
+      'notice of ruling',
+      'reservation',
+      'LASC',
+      'eCourt',
+      'e-filing',
+    ]);
+    setCaseIdPatterns([
+      '(?:Case\\s*(?:No\\.?|Number)|Docket\\s*(?:No\\.?|Number))[:#\\s-]*([A-Z0-9-]+)',
+      '\\b\\d{2}[A-Z]{2,5}\\d{4,}\\b',
+      '\\b\\d{7,12}\\b',
+    ]);
+    setCalendarId('primary');
+    setCalendarEmail(accountOptions[0] || '');
+    setEnabled(true);
+    setSenderDraft('');
+    setKeywordDraft('');
+    setPatternDraft('');
+  };
+
+  const applyVendorPreset = () => {
+    setEditing(null);
+    setName('Vendor deadline / payment notices');
+    setSenderEmails([]);
+    setKeywords([
+      'invoice',
+      'payment due',
+      'balance due',
+      'past due',
+      'subscription',
+      'renewal',
+      'upload',
+      'deadline',
+      'transcript',
+      'records',
+      'vendor',
+      'SugarSync',
+    ]);
+    setCaseIdPatterns([
+      '(?:Case\\s*(?:No\\.?|Number)|Docket\\s*(?:No\\.?|Number))[:#\\s-]*([A-Z0-9-]+)',
+      '\\b\\d{2}[A-Z]{2,5}\\d{4,}\\b',
+      '\\b\\d{7,12}\\b',
+    ]);
+    setCalendarId('primary');
+    setCalendarEmail(accountOptions[0] || '');
+    setEnabled(true);
+    setSenderDraft('');
+    setKeywordDraft('');
+    setPatternDraft('');
+  };
+
   return (
     <div>
       <div className="topbar">
@@ -232,6 +294,12 @@ export default function Triggers({ accounts, onSaved }) {
         <div className="trigger-top-actions">
           <button className="btn-ghost" type="button" onClick={applyDiscoveryPreset}>
             Use discovery preset
+          </button>
+          <button className="btn-ghost" type="button" onClick={applyCourtPreset}>
+            Use court/CMC preset
+          </button>
+          <button className="btn-ghost" type="button" onClick={applyVendorPreset}>
+            Use vendor preset
           </button>
           <button className="btn-primary" onClick={() => {
             resetForm();
@@ -249,6 +317,12 @@ export default function Triggers({ accounts, onSaved }) {
             <p className="meta">Use the discovery preset, create the trigger, then click Scan now. CaseSync will calculate response deadlines from Proof of Service dates and add Calendar reminders.</p>
             <button className="btn-ghost" type="button" onClick={applyDiscoveryPreset}>
               Fill recommended discovery trigger
+            </button>
+            <button className="btn-ghost" type="button" onClick={applyCourtPreset}>
+              Fill court / CMC trigger
+            </button>
+            <button className="btn-ghost" type="button" onClick={applyVendorPreset}>
+              Fill vendor trigger
             </button>
           </div>
           <label className="meta" htmlFor="trigger-name">Name</label>
