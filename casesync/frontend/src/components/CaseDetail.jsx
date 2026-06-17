@@ -50,6 +50,19 @@ const deadlineKey = (deadline) => [
 
 const cleanAction = (action) => action || 'Review deadline';
 
+const formatParserSource = (source) => {
+  if (source === 'ai_fallback') {
+    return 'AI fallback';
+  }
+  if (source === 'rule_based') {
+    return 'Rule-based';
+  }
+  if (source === 'rule_fallback') {
+    return 'Rule fallback';
+  }
+  return 'Parser result';
+};
+
 const buildDeadlineRows = (deadlines = []) => {
   const byKey = new Map();
   for (const deadline of deadlines) {
@@ -114,6 +127,15 @@ export default function CaseDetail({
   const visibleRelatedEmails = useMemo(() => relatedEmails.filter((email) => (
     email.classification !== 'not_relevant'
   )), [relatedEmails]);
+  const aiEmailAnalyses = useMemo(() => visibleRelatedEmails
+    .map((email) => ({
+      messageId: email.messageId,
+      subject: email.subject,
+      receivedAt: email.receivedAt,
+      parserSource: email.raw?.parserSource || '',
+      analysis: email.raw?.aiAnalysis || null,
+    }))
+    .filter((item) => item.analysis), [visibleRelatedEmails]);
 
   const loadEmails = async () => {
     setEmailLoading(true);
@@ -372,6 +394,41 @@ export default function CaseDetail({
                   </div>
                   <p className="case-email-preview case-detail-email-preview">{email.bodyPreview || email.snippet || 'No preview available.'}</p>
                   {email.sourceReason ? <div className="meta">{email.sourceReason}</div> : null}
+                  {email.raw?.aiAnalysis ? (
+                    <details className="case-ai-analysis">
+                      <summary>
+                        <span>{email.raw.aiAnalysis.usedAi ? 'AI extraction result' : 'Parser extraction result'}</span>
+                        <em>{formatParserSource(email.raw.parserSource)}{email.raw.aiAnalysis.model ? ` · ${email.raw.aiAnalysis.model}` : ''}</em>
+                      </summary>
+                      <div className="case-ai-analysis-grid">
+                        <div>
+                          <span>Summary</span>
+                          <strong>{email.raw.aiAnalysis.summary || email.raw.parsedSummary || 'No summary returned.'}</strong>
+                        </div>
+                        <div>
+                          <span>Case ID</span>
+                          <strong>{email.raw.aiAnalysis.extracted?.caseId || email.raw.aiAnalysis.extracted?.caseTitle || 'Not extracted'}</strong>
+                        </div>
+                        <div>
+                          <span>Proof of Service</span>
+                          <strong>{formatShortDate(email.raw.aiAnalysis.extracted?.proofServiceDate)}</strong>
+                          <small>{email.raw.aiAnalysis.extracted?.proofServiceMethod || 'method unknown'}</small>
+                        </div>
+                        <div>
+                          <span>Discovery sets</span>
+                          <strong>{Array.isArray(email.raw.aiAnalysis.extracted?.discoverySets) && email.raw.aiAnalysis.extracted.discoverySets.length ? email.raw.aiAnalysis.extracted.discoverySets.join(', ') : 'Not detected'}</strong>
+                        </div>
+                        <div>
+                          <span>Confidence</span>
+                          <strong>{typeof email.raw.aiAnalysis.extracted?.caseConfidence === 'number' ? `${email.raw.aiAnalysis.extracted.caseConfidence}%` : 'Not scored'}</strong>
+                        </div>
+                        <div>
+                          <span>Deadline signal</span>
+                          <strong>{email.raw.aiAnalysis.extracted?.hasActionableDeadline ? 'Actionable deadline found' : 'No actionable deadline found'}</strong>
+                        </div>
+                      </div>
+                    </details>
+                  ) : null}
                   <div className="case-email-actions">
                     {email.needsReview ? (
                       <button className="btn-success" type="button" onClick={() => markEmailReviewed(email.messageId)}>
@@ -395,6 +452,23 @@ export default function CaseDetail({
       <section className="card case-detail-panel">
         <h3>Summary</h3>
         <p className="meta">{summaryText}</p>
+        <details className="case-raw-notes" open>
+          <summary>AI extraction history</summary>
+          {aiEmailAnalyses.length === 0 ? (
+            <p className="meta">No AI extraction results saved yet. New unclear emails will show their AI result here after scanning.</p>
+          ) : (
+            <div className="case-ai-history">
+              {aiEmailAnalyses.slice(0, 8).map((item) => (
+                <div className="case-ai-history-row" key={item.messageId}>
+                  <strong>{item.analysis.usedAi ? 'AI reviewed' : 'Rule parser reviewed'} · {item.subject}</strong>
+                  <span>{formatEmailDate(item.receivedAt)} · {formatParserSource(item.parserSource)}</span>
+                  <small>{item.analysis.summary || 'No summary returned.'}</small>
+                  {item.analysis.model ? <small>Model: {item.analysis.model}</small> : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </details>
         <details className="case-raw-notes" open>
           <summary>Calendar update history</summary>
           {caseSettings.calendarUpdateHistory.length === 0 ? (

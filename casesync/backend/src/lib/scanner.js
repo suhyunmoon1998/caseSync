@@ -352,6 +352,8 @@ const storeCaseEmail = async ({
       proofServiceMethod: parsed.proofServiceMethod || '',
       discoverySets: parsed.discoverySets || [],
       hasActionableDeadline: Boolean(parsed.hasActionableDeadline),
+      parserSource: parsed.parserSource || '',
+      aiAnalysis: parsed.aiAnalysis || null,
     },
   });
 };

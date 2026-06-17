@@ -438,6 +438,8 @@ export const parseEmail = async ({ subject = '', body = '', from = '', date = ''
     proofServiceDate: fallback.date,
     proofServiceMethod: fallback.method,
     estimated: hintCaseId ? false : true,
+    parserSource: 'rule_fallback',
+    aiAnalysis: null,
   };
 
   try {
@@ -456,6 +458,19 @@ export const parseEmail = async ({ subject = '', body = '', from = '', date = ''
         hasActionableDeadline: true,
         caseConfidence: extractCaseIdConfidence(data.caseId),
         estimated: false,
+        parserSource: 'rule_based',
+        aiAnalysis: {
+          usedAi: false,
+          model: null,
+          summary: 'Rule-based parser detected proof of service, discovery set labels, and a case identifier. AI was not used for this email.',
+          extracted: {
+            caseId: hintCaseId,
+            proofServiceDate: data.proofServiceDate || '',
+            proofServiceMethod: data.proofServiceMethod || '',
+            discoverySets: data.discoverySets || [],
+            hasActionableDeadline: true,
+          },
+        },
       };
       throw new Error('Rule-based parser completed');
     }
@@ -497,6 +512,24 @@ export const parseEmail = async ({ subject = '', body = '', from = '', date = ''
             priority: normalizePriority(deadline.priority),
           })).filter((deadline) => Boolean(deadline.date))
           : [],
+        parserSource: 'ai_fallback',
+        aiAnalysis: {
+          usedAi: true,
+          model: ANTHROPIC_MODEL,
+          summary: typeof parsed.summary === 'string' ? parsed.summary.trim() : '',
+          extracted: {
+            caseId,
+            caseTitle: typeof parsed.caseTitle === 'string' ? parsed.caseTitle.trim() : '',
+            status: parsed.status || '',
+            caseConfidence,
+            estimated: resolveEstimated(parsed.estimated, Boolean(hintCaseId), caseConfidence),
+            hasActionableDeadline: parsed.hasActionableDeadline === true,
+            proofServiceDate: normalizeDate(parsed.proofServiceDate) || data.proofServiceDate || '',
+            proofServiceMethod: normalizeServiceMethod(parsed.proofServiceMethod) || data.proofServiceMethod || '',
+            discoverySets: normalizeDiscoverySets(parsed.discoverySets, fullText),
+            deadlines: Array.isArray(parsed.deadlines) ? parsed.deadlines : [],
+          },
+        },
       };
     }
   } catch (error) {

@@ -4571,3 +4571,74 @@ body::after {
 .case-update-history-row strong {
   font-size: 13px;
 }
+
+.case-ai-analysis {
+  margin-top: 10px;
+  border: 1px solid rgba(255, 122, 24, 0.18);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(255, 122, 24, 0.10), rgba(255, 255, 255, 0.82));
+  overflow: hidden;
+}
+
+.case-ai-analysis summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.case-ai-analysis summary em {
+  color: var(--text-3);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.case-ai-analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+
+.case-ai-analysis-grid div,
+.case-ai-history-row {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.case-ai-analysis-grid span,
+.case-ai-history-row span,
+.case-ai-history-row small {
+  color: var(--text-3);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.case-ai-analysis-grid strong,
+.case-ai-history-row strong {
+  color: var(--text-1);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.case-ai-history {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+@media (max-width: 720px) {
+  .case-ai-analysis-grid {
+    grid-template-columns: 1fr;
+  }
+}
