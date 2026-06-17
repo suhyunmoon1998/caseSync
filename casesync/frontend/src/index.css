@@ -5124,3 +5124,453 @@ body::after {
     grid-template-columns: 1fr;
   }
 }
+
+/* Apple-grade visual reset: clean, premium, and easier for first-time users. */
+:root {
+  --apple-bg: #f5f5f7;
+  --apple-bg-deep: #e8ebf0;
+  --apple-surface: rgba(255, 255, 255, 0.94);
+  --apple-surface-solid: #ffffff;
+  --apple-line: rgba(29, 29, 31, 0.10);
+  --apple-line-strong: rgba(29, 29, 31, 0.18);
+  --apple-text: #1d1d1f;
+  --apple-muted: #6e6e73;
+  --apple-faint: #86868b;
+  --apple-blue: #0071e3;
+  --apple-blue-dark: #005bbd;
+  --apple-green: #30d158;
+  --apple-orange: #ff9f0a;
+  --apple-red: #ff3b30;
+  --apple-radius-xl: 34px;
+  --apple-radius-lg: 24px;
+  --apple-radius-md: 16px;
+  --apple-shadow: 0 28px 70px rgba(0, 0, 0, 0.10), 0 8px 24px rgba(0, 0, 0, 0.05);
+  --apple-shadow-soft: 0 14px 38px rgba(0, 0, 0, 0.08);
+  --accent: var(--apple-blue);
+  --accent-2: #111827;
+  --text-1: var(--apple-text);
+  --text-2: var(--apple-muted);
+  --text-3: var(--apple-faint);
+}
+
+body {
+  color: var(--apple-text) !important;
+  background:
+    radial-gradient(circle at 18% -8%, rgba(255, 255, 255, 0.98), transparent 32%),
+    radial-gradient(circle at 84% 8%, rgba(0, 113, 227, 0.12), transparent 28%),
+    radial-gradient(circle at 70% 100%, rgba(48, 209, 88, 0.08), transparent 34%),
+    linear-gradient(180deg, #fbfbfd 0%, var(--apple-bg) 44%, var(--apple-bg-deep) 100%) !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+body::before,
+body::after {
+  opacity: 0 !important;
+}
+
+.app-shell-clean {
+  background: transparent !important;
+}
+
+.app-shell-clean .clean-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: 82px;
+  margin: 16px auto 0;
+  width: min(1760px, calc(100vw - 32px));
+  color: var(--apple-text) !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  border: 1px solid rgba(255, 255, 255, 0.72) !important;
+  border-radius: 26px !important;
+  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.08) !important;
+  backdrop-filter: blur(26px) saturate(1.6) !important;
+}
+
+.app-shell-clean .clean-brand strong,
+.app-shell-clean .canvas-sidebar-title strong,
+.app-shell-clean .canvas-stage-head h1,
+.app-shell-clean .topbar h2,
+.app-shell-clean .case-detail-title h2,
+.app-shell-clean .landing-headline {
+  background: none !important;
+  color: var(--apple-text) !important;
+  -webkit-text-fill-color: var(--apple-text) !important;
+  letter-spacing: -0.075em;
+}
+
+.app-shell-clean .clean-brand span,
+.app-shell-clean .canvas-sidebar-title span,
+.app-shell-clean .canvas-sidebar-footer .connected-pill,
+.app-shell-clean .hero-copy,
+.app-shell-clean .meta {
+  color: var(--apple-muted) !important;
+}
+
+.app-shell-clean .main-clean {
+  padding: 18px 16px 34px !important;
+  background: transparent !important;
+}
+
+.app-shell-clean .canvas-workspace {
+  display: grid !important;
+  grid-template-columns: 280px minmax(0, 1fr) !important;
+  gap: 18px !important;
+  width: min(1760px, 100%) !important;
+  margin: 0 auto !important;
+  color: var(--apple-text) !important;
+}
+
+.app-shell-clean .canvas-sidebar,
+.app-shell-clean .canvas-stage {
+  background: rgba(255, 255, 255, 0.72) !important;
+  border: 1px solid rgba(255, 255, 255, 0.76) !important;
+  box-shadow: var(--apple-shadow) !important;
+  backdrop-filter: blur(30px) saturate(1.42) !important;
+}
+
+.app-shell-clean .canvas-sidebar {
+  border-radius: 32px !important;
+  padding: 22px !important;
+  min-height: calc(100vh - 136px);
+  overflow: hidden !important;
+}
+
+.app-shell-clean .canvas-stage {
+  border-radius: 34px !important;
+  padding: clamp(20px, 2.2vw, 36px) !important;
+  overflow: visible !important;
+}
+
+.app-shell-clean .canvas-sidebar::before,
+.app-shell-clean .canvas-stage::before,
+.app-shell-clean .case-detail-hero::before {
+  display: none !important;
+}
+
+.app-shell-clean .canvas-sidebar-title {
+  padding-bottom: 22px !important;
+  border-bottom: 1px solid var(--apple-line) !important;
+}
+
+.app-shell-clean .canvas-sidebar-title strong {
+  font-size: 28px !important;
+  line-height: 1 !important;
+}
+
+.app-shell-clean .canvas-nav {
+  gap: 8px !important;
+  margin-top: 18px !important;
+}
+
+.app-shell-clean .canvas-nav-item {
+  min-height: 68px !important;
+  padding: 14px 16px !important;
+  border-radius: 18px !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+  color: var(--apple-text) !important;
+  transition: background 180ms ease, border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease !important;
+}
+
+.app-shell-clean .canvas-nav-item:hover {
+  background: rgba(255, 255, 255, 0.82) !important;
+  border-color: rgba(29, 29, 31, 0.08) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.06) !important;
+}
+
+.app-shell-clean .canvas-nav-item.is-active {
+  color: #fff !important;
+  background: linear-gradient(180deg, #2f80ed 0%, var(--apple-blue) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.52) !important;
+  box-shadow: 0 18px 34px rgba(0, 113, 227, 0.30) !important;
+}
+
+.app-shell-clean .canvas-nav-item span {
+  font-size: 16px !important;
+  letter-spacing: -0.045em !important;
+}
+
+.app-shell-clean .canvas-nav-item small {
+  color: var(--apple-muted) !important;
+  font-size: 12px !important;
+}
+
+.app-shell-clean .canvas-nav-item.is-active small {
+  color: rgba(255, 255, 255, 0.74) !important;
+}
+
+.app-shell-clean .canvas-alerts,
+.app-shell-clean .canvas-sidebar-footer {
+  background: rgba(245, 245, 247, 0.72) !important;
+  border: 1px solid var(--apple-line) !important;
+  border-radius: 22px !important;
+  box-shadow: none !important;
+}
+
+.app-shell-clean .commercial-onboarding,
+.app-shell-clean .canvas-stage-head,
+.app-shell-clean .card,
+.app-shell-clean .stat,
+.app-shell-clean .account-panel,
+.app-shell-clean .notification-panel,
+.app-shell-clean .calendar-month,
+.app-shell-clean .case-detail-hero,
+.app-shell-clean .case-detail-panel,
+.app-shell-clean .case-folder-card {
+  color: var(--apple-text) !important;
+  background: var(--apple-surface) !important;
+  border: 1px solid rgba(255, 255, 255, 0.84) !important;
+  border-radius: var(--apple-radius-lg) !important;
+  box-shadow: var(--apple-shadow-soft) !important;
+  backdrop-filter: blur(20px) saturate(1.22) !important;
+}
+
+.app-shell-clean .commercial-onboarding {
+  display: grid !important;
+  grid-template-columns: minmax(0, 0.85fr) minmax(360px, 1.15fr) !important;
+  align-items: center !important;
+  gap: 20px !important;
+  padding: clamp(22px, 2.2vw, 36px) !important;
+  border-radius: 32px !important;
+  background:
+    radial-gradient(circle at 92% 6%, rgba(0, 113, 227, 0.12), transparent 28%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(246, 248, 252, 0.94)) !important;
+}
+
+.app-shell-clean .commercial-onboarding h3 {
+  margin: 6px 0 0 !important;
+  max-width: 780px;
+  font-size: clamp(36px, 4.8vw, 76px) !important;
+  line-height: 0.94 !important;
+  letter-spacing: -0.085em !important;
+  color: var(--apple-text) !important;
+}
+
+.app-shell-clean .onboarding-steps {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+
+.app-shell-clean .onboarding-steps span {
+  min-height: 58px !important;
+  padding: 16px !important;
+  border-radius: 999px !important;
+  color: var(--apple-text) !important;
+  background: #fff !important;
+  border: 1px solid var(--apple-line) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.07) !important;
+  text-align: center;
+  font-weight: 760 !important;
+}
+
+.app-shell-clean .canvas-stage-head {
+  align-items: end !important;
+  padding: clamp(24px, 3vw, 44px) !important;
+  border-radius: 32px !important;
+  background:
+    radial-gradient(circle at 88% 14%, rgba(0, 113, 227, 0.10), transparent 24%),
+    linear-gradient(135deg, #ffffff 0%, #f7f8fb 100%) !important;
+}
+
+.app-shell-clean .canvas-stage-head h1 {
+  max-width: 920px;
+  font-size: clamp(54px, 6vw, 104px) !important;
+  line-height: 0.88 !important;
+}
+
+.app-shell-clean .hero-copy {
+  max-width: 820px;
+  margin-top: 18px !important;
+  font-size: clamp(18px, 1.5vw, 25px) !important;
+  line-height: 1.28 !important;
+  letter-spacing: -0.045em;
+}
+
+.app-shell-clean .eyebrow,
+.app-shell-clean .case-folder-kicker,
+.app-shell-clean .mini-link {
+  color: var(--apple-blue) !important;
+  letter-spacing: 0.11em !important;
+  font-weight: 820 !important;
+}
+
+.app-shell-clean .btn-primary,
+.app-shell-clean .btn-success,
+.app-shell-clean .calendar-range-chip.is-active {
+  color: #fff !important;
+  background: linear-gradient(180deg, #2f80ed 0%, var(--apple-blue) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.52) !important;
+  border-radius: 999px !important;
+  box-shadow: 0 14px 30px rgba(0, 113, 227, 0.28) !important;
+}
+
+.app-shell-clean .btn-primary:hover,
+.app-shell-clean .btn-success:hover {
+  background: linear-gradient(180deg, #3d8dff 0%, var(--apple-blue-dark) 100%) !important;
+  transform: translateY(-2px) !important;
+}
+
+.app-shell-clean .btn-ghost,
+.app-shell-clean .btn-danger,
+.app-shell-clean .input,
+.app-shell-clean .account-pill,
+.app-shell-clean .hint-chip,
+.app-shell-clean .badge,
+.app-shell-clean .calendar-range-chip {
+  color: var(--apple-text) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid var(--apple-line) !important;
+  border-radius: 999px !important;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.055) !important;
+  backdrop-filter: none !important;
+}
+
+.app-shell-clean .input {
+  border-radius: 16px !important;
+  min-height: 52px;
+}
+
+.app-shell-clean .quick-case-form {
+  display: grid !important;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(220px, 1fr) minmax(220px, 1fr) auto !important;
+  align-items: end !important;
+  gap: 14px !important;
+  padding: 20px !important;
+}
+
+.app-shell-clean .control-panel,
+.app-shell-clean .case-summary-item,
+.app-shell-clean .case-email-item,
+.app-shell-clean .case-detail-deadline-row,
+.app-shell-clean .timeline-item,
+.app-shell-clean .calendar-day {
+  background: #fff !important;
+  border: 1px solid var(--apple-line) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.055) !important;
+}
+
+.app-shell-clean .cases-grid {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) !important;
+  gap: 16px !important;
+}
+
+.app-shell-clean .case-folder-card {
+  min-height: 210px !important;
+  padding: 24px !important;
+  transition: transform 180ms ease, box-shadow 180ms ease !important;
+}
+
+.app-shell-clean .case-folder-card:hover {
+  transform: translateY(-5px) !important;
+  box-shadow: 0 28px 68px rgba(0, 0, 0, 0.13) !important;
+}
+
+.app-shell-clean .case-folder-card .case-folder-body strong {
+  font-size: 28px !important;
+  line-height: 1 !important;
+  letter-spacing: -0.07em !important;
+}
+
+.app-shell-clean .case-detail-deadline-large {
+  color: #fff !important;
+  border-radius: 32px !important;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.18), transparent 32%),
+    linear-gradient(135deg, #111827 0%, #1d1d1f 45%, var(--apple-blue) 100%) !important;
+  box-shadow: 0 28px 66px rgba(0, 113, 227, 0.22) !important;
+}
+
+.app-shell-clean .stats {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important;
+  gap: 14px !important;
+}
+
+.app-shell-clean .stat {
+  min-height: 138px !important;
+  padding: 20px !important;
+}
+
+.app-shell-clean .stat .n {
+  color: var(--apple-text) !important;
+  font-size: clamp(32px, 3vw, 56px) !important;
+  letter-spacing: -0.08em !important;
+}
+
+.app-shell-clean .badge-high,
+.app-shell-clean .stat-icon-danger {
+  color: #b42318 !important;
+  background: rgba(255, 59, 48, 0.12) !important;
+}
+
+.app-shell-clean .badge-medium,
+.app-shell-clean .stat-icon-warning {
+  color: #9a5b00 !important;
+  background: rgba(255, 159, 10, 0.16) !important;
+}
+
+.app-shell-clean .badge-low,
+.app-shell-clean .badge-active,
+.app-shell-clean .stat-icon-success {
+  color: #0a7a2f !important;
+  background: rgba(48, 209, 88, 0.13) !important;
+}
+
+.connect-screen {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(0, 113, 227, 0.28), transparent 28%),
+    radial-gradient(circle at 82% 18%, rgba(255, 255, 255, 0.12), transparent 24%),
+    linear-gradient(135deg, #030303 0%, #111827 48%, #000000 100%) !important;
+}
+
+.connect-card {
+  width: min(920px, calc(100vw - 32px)) !important;
+  padding: clamp(30px, 5vw, 64px) !important;
+  border-radius: 38px !important;
+  background:
+    radial-gradient(circle at 88% 10%, rgba(0, 113, 227, 0.20), transparent 30%),
+    linear-gradient(145deg, rgba(24, 24, 27, 0.94), rgba(5, 5, 7, 0.92)) !important;
+  box-shadow: 0 46px 140px rgba(0, 0, 0, 0.56), 0 18px 62px rgba(0, 113, 227, 0.18) !important;
+}
+
+.connect-card h1,
+.connect-card .landing-headline {
+  font-size: clamp(46px, 7vw, 92px) !important;
+  line-height: 0.9 !important;
+  letter-spacing: -0.085em !important;
+  background: linear-gradient(100deg, #ffffff 0%, #e8f1ff 50%, #4da3ff 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+}
+
+.easy-start-form {
+  border-radius: 28px !important;
+  background: rgba(255, 255, 255, 0.10) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+.easy-start-form .input {
+  border-radius: 18px !important;
+}
+
+@media (max-width: 1180px) {
+  .app-shell-clean .canvas-workspace,
+  .app-shell-clean .commercial-onboarding,
+  .app-shell-clean .quick-case-form {
+    grid-template-columns: 1fr !important;
+  }
+
+  .app-shell-clean .canvas-sidebar {
+    position: relative !important;
+    min-height: auto !important;
+  }
+
+  .app-shell-clean .onboarding-steps {
+    grid-template-columns: 1fr !important;
+  }
+}
+
