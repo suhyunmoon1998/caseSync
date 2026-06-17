@@ -10,6 +10,8 @@ import {
   getAccounts,
   removeAccount,
   loginWithGoogle,
+  getTriggers,
+  createTrigger,
   getCases,
   getScanLogs,
   getScanStatus,
@@ -21,6 +23,82 @@ import {
 } from './utils/api';
 
 const DEFAULT_SCAN_POLL_MS = 5 * 60 * 1000;
+
+const EASY_SETUP_TRIGGERS = [
+  {
+    name: 'Discovery proof of service',
+    senderEmails: [],
+    keywords: [
+      'proof of service',
+      'served',
+      'discovery',
+      'interrogatories',
+      'requests for production',
+      'requests for admission',
+      'E-rogs',
+      'G-rogs',
+      'RFP',
+      'RFA',
+    ],
+    caseIdPatterns: [
+      '(?:Case\\s*(?:No\\.?|Number)|Docket\\s*(?:No\\.?|Number))[:#\\s-]*([A-Z0-9-]+)',
+      '\\b\\d{2}[A-Z]{2,5}\\d{4,}\\b',
+      '\\b\\d{7,12}\\b',
+    ],
+    calendarId: 'primary',
+    enabled: true,
+  },
+  {
+    name: 'Court / CMC / hearing notices',
+    senderEmails: [],
+    keywords: [
+      'court notice',
+      'notice of hearing',
+      'hearing notice',
+      'case management conference',
+      'CMC',
+      'case management statement',
+      'minute order',
+      'notice of ruling',
+      'reservation',
+      'LASC',
+      'eCourt',
+      'e-filing',
+    ],
+    caseIdPatterns: [
+      '(?:Case\\s*(?:No\\.?|Number)|Docket\\s*(?:No\\.?|Number))[:#\\s-]*([A-Z0-9-]+)',
+      '\\b\\d{2}[A-Z]{2,5}\\d{4,}\\b',
+      '\\b\\d{7,12}\\b',
+    ],
+    calendarId: 'primary',
+    enabled: true,
+  },
+  {
+    name: 'Vendor deadline / payment notices',
+    senderEmails: [],
+    keywords: [
+      'invoice',
+      'payment due',
+      'balance due',
+      'past due',
+      'subscription',
+      'renewal',
+      'upload',
+      'deadline',
+      'transcript',
+      'records',
+      'vendor',
+      'SugarSync',
+    ],
+    caseIdPatterns: [
+      '(?:Case\\s*(?:No\\.?|Number)|Docket\\s*(?:No\\.?|Number))[:#\\s-]*([A-Z0-9-]+)',
+      '\\b\\d{2}[A-Z]{2,5}\\d{4,}\\b',
+      '\\b\\d{7,12}\\b',
+    ],
+    calendarId: 'primary',
+    enabled: true,
+  },
+];
 
 const toastForError = (error) => {
   if (!error) {
@@ -61,6 +139,7 @@ export default function App() {
   const [caseNotifications, setCaseNotifications] = useState([]);
   const [toast, setToast] = useState('');
   const [activeView, setActiveView] = useState('cases');
+  const [starterEmail, setStarterEmail] = useState('');
   const [isLoading, setIsLoading] = useState({ accounts: true, cases: false, logs: false, scan: false });
   const lastNotifiedScanRef = useRef('');
   const scanStatusInitializedRef = useRef(false);
@@ -170,13 +249,52 @@ export default function App() {
     ]);
   };
 
-  useEffect(() => {
-    const connected = new URLSearchParams(window.location.search).get('connected');
-    if (connected === 'true') {
-      setToast('Google account connected.');
-      window.history.replaceState({}, '', '/');
+  const seedEasySetupRules = async () => {
+    const existing = await getTriggers();
+    const existingNames = new Set(existing.map((item) => String(item.name || '').trim().toLowerCase()));
+    for (const trigger of EASY_SETUP_TRIGGERS) {
+      if (!existingNames.has(trigger.name.toLowerCase())) {
+        await createTrigger(trigger);
+      }
     }
-    void loadAll();
+  };
+
+  const runEasySetup = async () => {
+    setIsLoading((prev) => ({ ...prev, scan: true }));
+    try {
+      setToast('Easy setup started. Creating rules and checking Gmail...');
+      await seedEasySetupRules();
+      const result = await runScan();
+      mergeNotifications(result?.result?.notifications || []);
+      await loadAll();
+      setActiveView('cases');
+      setToast('Easy setup complete. Review the cases and calendar items CaseSync found.');
+    } catch (error) {
+      setToast(toastForError(error));
+    } finally {
+      setIsLoading((prev) => ({ ...prev, scan: false }));
+    }
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const connected = params.get('connected');
+    const setupMode = params.get('setup');
+
+    const start = async () => {
+      if (connected === 'true') {
+        setToast(setupMode === 'easy' ? 'Google account connected. Setting up CaseSync...' : 'Google account connected.');
+        window.history.replaceState({}, '', '/');
+      }
+
+      await loadAll();
+
+      if (connected === 'true' && setupMode === 'easy') {
+        await runEasySetup();
+      }
+    };
+
+    void start();
   }, []);
 
   useEffect(() => {
@@ -201,8 +319,13 @@ export default function App() {
     return () => clearTimeout(id);
   }, [toast]);
 
-  const onConnect = () => {
-    loginWithGoogle();
+  const onConnect = (email = '', setup = '') => {
+    loginWithGoogle(typeof email === 'string' ? email : '', typeof setup === 'string' ? setup : '');
+  };
+
+  const onEasyConnect = (event) => {
+    event.preventDefault();
+    loginWithGoogle(starterEmail, 'easy');
   };
 
   const onRemoveAccount = async (email) => {
@@ -492,10 +615,27 @@ export default function App() {
           <div className="landing-proof-points">
             <span>Reads Gmail and attachments</span>
             <span>Calculates 30/32/35-day deadlines</span>
-            <span>Adds Google Calendar reminders</span>
+            <span>Adds Google Calendar items for review</span>
           </div>
-          <button className="btn-primary connect-cta" onClick={onConnect}>
-            Connect Gmail to start
+          <form className="easy-start-form" onSubmit={onEasyConnect}>
+            <label htmlFor="starter-email">Start with your Gmail address</label>
+            <div className="easy-start-row">
+              <input
+                id="starter-email"
+                className="input"
+                type="email"
+                value={starterEmail}
+                onChange={(event) => setStarterEmail(event.target.value)}
+                placeholder="you@lawfirm.com"
+              />
+              <button className="btn-primary connect-cta" type="submit">
+                Set up automatically
+              </button>
+            </div>
+            <p className="meta">CaseSync will connect Gmail, create the recommended legal triggers, scan for deadlines, and show you what to confirm.</p>
+          </form>
+          <button className="btn-ghost connect-secondary" type="button" onClick={() => onConnect()}>
+            Connect without email hint
           </button>
           <p className="meta">You stay in control. CaseSync only uses access to find legal deadlines and create calendar reminders.</p>
         </div>

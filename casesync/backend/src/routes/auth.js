@@ -23,11 +23,15 @@ const scopeList = [
   'https://www.googleapis.com/auth/userinfo.profile',
 ];
 
-router.get('/google', (_req, res) => {
+router.get('/google', (req, res) => {
+  const loginHint = String(req.query.login_hint || '').trim();
+  const setupMode = String(req.query.setup || '').trim();
   const url = oauth2Client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent select_account',
     scope: scopeList,
+    ...(loginHint ? { login_hint: loginHint } : {}),
+    ...(setupMode === 'easy' ? { state: 'easy_setup' } : {}),
   });
   res.redirect(url);
 });
@@ -69,7 +73,8 @@ router.get('/google/callback', async (req, res) => {
       calendarAccess: true,
     });
 
-    res.redirect(`${FRONTEND_ORIGIN}?connected=true`);
+    const setupQuery = req.query.state === 'easy_setup' ? '&setup=easy' : '';
+    res.redirect(`${FRONTEND_ORIGIN}?connected=true${setupQuery}`);
   } catch (error) {
     console.error('OAuth callback error', error);
     res.redirect(`${FRONTEND_ORIGIN}?error=oauth_failed`);

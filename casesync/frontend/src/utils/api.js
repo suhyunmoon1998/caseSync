@@ -17,8 +17,18 @@ export const removeAccount = async (email) => {
   return response.data;
 };
 
-export const loginWithGoogle = () => {
-  window.location.href = `${apiBaseUrl}/auth/google`;
+export const loginWithGoogle = (email = '', setup = '') => {
+  const params = new URLSearchParams();
+  const cleanEmail = String(email || '').trim();
+  const cleanSetup = String(setup || '').trim();
+  if (cleanEmail) {
+    params.set('login_hint', cleanEmail);
+  }
+  if (cleanSetup) {
+    params.set('setup', cleanSetup);
+  }
+  const suffix = params.toString() ? `?${params.toString()}` : '';
+  window.location.href = `${apiBaseUrl}/auth/google${suffix}`;
 };
 
 export const getTriggers = async () => {
