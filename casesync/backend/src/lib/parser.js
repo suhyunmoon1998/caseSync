@@ -2,6 +2,8 @@ import { Anthropic } from '@anthropic-ai/sdk';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-3-5-haiku-20241022';
+
 const CASE_CONFIDENCE_CONFIRM_THRESHOLD = 80;
 
 const normalizeDate = (value) => {
@@ -463,7 +465,7 @@ export const parseEmail = async ({ subject = '', body = '', from = '', date = ''
     }
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: ANTHROPIC_MODEL,
       max_tokens: 1400,
       messages: [{
         role: 'user',
