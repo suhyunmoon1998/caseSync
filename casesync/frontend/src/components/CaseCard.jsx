@@ -62,35 +62,31 @@ export default function CaseCard({
 
   return (
     <button
-      className="card case-folder-card case-status-row"
+      className="card case-folder-card case-folder-tile"
       type="button"
       onClick={() => onOpen(caseItem.caseId)}
       style={{ '--case-color': caseColor }}
     >
+      <span className="case-folder-tab" />
       <span className="case-folder-mark" />
-      <span className="case-status-main">
-        <span className="case-folder-body">
-          <span className="case-folder-kicker">Case name</span>
-          <strong>{caseLabel}</strong>
-        </span>
 
-        <span className="case-status-cell">
-          <small>Case number</small>
-          <strong>{caseId}</strong>
-        </span>
+      <span className="case-folder-tile-head">
+        <span className="case-folder-kicker">Case folder</span>
+        <span className="badge badge-active">{titleCaseStatus(status)}</span>
+      </span>
 
-        <span className="case-status-cell">
-          <small>Status</small>
-          <strong>{titleCaseStatus(status)}</strong>
-        </span>
+      <span className="case-folder-body">
+        <strong>{caseLabel}</strong>
+        <span className="case-folder-number">{caseId}</span>
+      </span>
 
-        <span className="case-status-cell">
+      <span className="case-folder-tile-details">
+        <span>
           <small>Next deadline</small>
           <strong>{formatDeadline(nextDeadline)}</strong>
           <em>{priority.label}</em>
         </span>
-
-        <span className="case-status-cell case-status-email-count">
+        <span className="case-folder-email-count">
           <small>Related emails</small>
           <strong>{relatedEmailCount}</strong>
         </span>

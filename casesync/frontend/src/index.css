@@ -8760,3 +8760,169 @@ td {
     text-align: left !important;
   }
 }
+
+/* Case folders: keep the simple fields, but present them like organized file folders. */
+.app-shell-clean .cases-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)) !important;
+  gap: 16px !important;
+  align-items: stretch !important;
+}
+
+.app-shell-clean .case-folder-tile {
+  position: relative !important;
+  isolation: isolate !important;
+  min-height: 220px !important;
+  padding: 26px 18px 18px !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  grid-template-rows: auto 1fr auto !important;
+  gap: 14px !important;
+  align-items: stretch !important;
+  text-align: left !important;
+  border-radius: 24px !important;
+  overflow: hidden !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 248, 255, 0.92)) !important;
+  border: 1px solid rgba(15, 23, 42, 0.09) !important;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+.app-shell-clean .case-folder-tile::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 46% !important;
+  height: 26px !important;
+  border-radius: 0 0 18px 0 !important;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--case-color, #0071e3) 24%, white), rgba(255, 255, 255, 0.92)) !important;
+  border-right: 1px solid rgba(15, 23, 42, 0.08) !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07) !important;
+  z-index: -1 !important;
+}
+
+.app-shell-clean .case-folder-tile:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 28px 62px rgba(37, 99, 235, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.92) !important;
+}
+
+.app-shell-clean .case-folder-tile .case-folder-mark {
+  position: absolute !important;
+  top: 44px !important;
+  left: 18px !important;
+  width: 9px !important;
+  height: 9px !important;
+  min-height: 9px !important;
+  border-radius: 999px !important;
+  background: var(--case-color, #0071e3) !important;
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--case-color, #0071e3) 15%, transparent) !important;
+}
+
+.app-shell-clean .case-folder-tile-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+}
+
+.app-shell-clean .case-folder-tile .case-folder-kicker {
+  padding-left: 20px !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.14em !important;
+  color: #64748b !important;
+}
+
+.app-shell-clean .case-folder-tile .case-folder-body {
+  display: grid !important;
+  gap: 9px !important;
+  align-content: start !important;
+  min-width: 0 !important;
+}
+
+.app-shell-clean .case-folder-tile .case-folder-body > strong {
+  font-size: 19px !important;
+  line-height: 1.12 !important;
+  letter-spacing: -0.035em !important;
+  color: #0f172a !important;
+  overflow-wrap: anywhere !important;
+}
+
+.app-shell-clean .case-folder-tile .case-folder-number {
+  display: inline-flex !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  padding: 6px 10px !important;
+  border-radius: 999px !important;
+  background: rgba(15, 23, 42, 0.05) !important;
+  color: #334155 !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+  overflow-wrap: anywhere !important;
+}
+
+.app-shell-clean .case-folder-tile-details {
+  display: grid !important;
+  grid-template-columns: 1fr auto !important;
+  gap: 12px !important;
+  align-items: end !important;
+  min-width: 0 !important;
+}
+
+.app-shell-clean .case-folder-tile-details > span {
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 5px !important;
+}
+
+.app-shell-clean .case-folder-tile-details small {
+  font-size: 10px !important;
+  line-height: 1 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.11em !important;
+  color: #64748b !important;
+}
+
+.app-shell-clean .case-folder-tile-details strong {
+  font-size: 12px !important;
+  line-height: 1.25 !important;
+  color: #0f172a !important;
+  overflow-wrap: anywhere !important;
+}
+
+.app-shell-clean .case-folder-tile-details em {
+  justify-self: start !important;
+  padding: 4px 8px !important;
+  border-radius: 999px !important;
+  background: rgba(37, 99, 235, 0.08) !important;
+  color: #1d4ed8 !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  font-style: normal !important;
+}
+
+.app-shell-clean .case-folder-email-count {
+  justify-items: center !important;
+  text-align: center !important;
+}
+
+.app-shell-clean .case-folder-email-count strong {
+  width: 44px !important;
+  height: 38px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  border-radius: 15px !important;
+  background: linear-gradient(135deg, rgba(0, 113, 227, 0.14), rgba(255, 255, 255, 0.94)) !important;
+  color: #075985 !important;
+  font-size: 19px !important;
+  line-height: 1 !important;
+}
+
+@media (max-width: 720px) {
+  .app-shell-clean .cases-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
