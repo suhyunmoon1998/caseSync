@@ -5574,3 +5574,41 @@ body::after {
   }
 }
 
+
+/* Review-first calendar approval: explicit human gate before writing to Google Calendar. */
+.case-calendar-approval {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid rgba(0, 113, 227, 0.18);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(0, 113, 227, 0.10), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(245, 249, 255, 0.94));
+  box-shadow: 0 14px 34px rgba(0, 113, 227, 0.10);
+}
+
+.case-calendar-approval div {
+  display: grid;
+  gap: 3px;
+}
+
+.case-calendar-approval strong {
+  color: var(--text-1);
+  font-size: 14px;
+  letter-spacing: -0.035em;
+}
+
+.case-calendar-approval small {
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+@media (max-width: 860px) {
+  .case-calendar-approval {
+    grid-template-columns: 1fr;
+  }
+}

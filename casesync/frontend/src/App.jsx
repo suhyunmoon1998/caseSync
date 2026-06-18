@@ -407,6 +407,7 @@ export default function App() {
     onCreateCaseFolder,
     onStatusChange: onUpdateCaseStatus,
     onDelete: onDeleteCase,
+    onRefresh: loadCases,
   };
 
   const main = useMemo(() => {

@@ -30,6 +30,7 @@ export default function Cases({
   onCreateCaseFolder,
   onStatusChange,
   onDelete,
+  onRefresh,
 }) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchText, setSearchText] = useState('');
@@ -102,6 +103,7 @@ export default function Cases({
         onBack={() => setSelectedCaseId('')}
         onStatusChange={onStatusChange}
         onDelete={onDelete}
+        onCalendarUpdated={onRefresh}
       />
     );
   }

@@ -6,6 +6,7 @@ import {
   importCalendarCasesToDb,
   createManualCase,
   createCaseFolder,
+  approveCaseCalendarUpdate,
 } from '../lib/scanner.js';
 import {
   getCaseEmailRecords,
@@ -120,6 +121,20 @@ router.post('/:caseId/confirm', async (req, res) => {
   } catch (error) {
     console.error('Confirm case failed', error);
     res.status(500).json({ error: 'Failed to confirm case' });
+  }
+});
+
+router.post('/:caseId/calendar/approve', async (req, res) => {
+  try {
+    const caseId = decodeURIComponent(req.params.caseId || '').trim();
+    const result = await approveCaseCalendarUpdate(caseId);
+    if (!result) {
+      return res.status(404).json({ error: 'Case not found' });
+    }
+    res.json({ success: true, ...result });
+  } catch (error) {
+    console.error('Approve case calendar failed', error);
+    res.status(400).json({ error: error.message || 'Failed to approve calendar update' });
   }
 });
 

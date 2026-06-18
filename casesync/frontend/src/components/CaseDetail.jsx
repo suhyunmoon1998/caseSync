@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, CalendarDays, CheckCircle2, ExternalLink, Mail, RefreshCcw, Trash2 } from 'lucide-react';
 import { differenceInCalendarDays, format, isValid, parseISO } from 'date-fns';
-import { getCaseEmails, updateCaseEmail, updateCaseSettings } from '../utils/api';
+import { approveCaseCalendar, getCaseEmails, updateCaseEmail, updateCaseSettings } from '../utils/api';
 
 const parseDate = (value) => {
   if (!value) {
@@ -92,6 +92,7 @@ export default function CaseDetail({
   onBack,
   onStatusChange,
   onDelete,
+  onCalendarUpdated,
 }) {
   const [relatedEmails, setRelatedEmails] = useState([]);
   const [emailLoading, setEmailLoading] = useState(false);
@@ -103,6 +104,8 @@ export default function CaseDetail({
     calendarUpdateHistory: Array.isArray(caseItem.calendarUpdateHistory) ? caseItem.calendarUpdateHistory : [],
   });
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [calendarApproving, setCalendarApproving] = useState(false);
+  const [calendarApproveUrl, setCalendarApproveUrl] = useState('');
   const status = caseItem.status || 'active';
   const caseColor = caseItem.caseColor || '#0071e3';
   const caseId = caseItem.caseId || '(No case ID)';
@@ -226,6 +229,20 @@ export default function CaseDetail({
     }
   };
 
+  const approveCalendarUpdate = async () => {
+    setEmailError('');
+    setCalendarApproving(true);
+    try {
+      const result = await approveCaseCalendar(caseId);
+      setCalendarApproveUrl(result.calendarEventUrl || '');
+      await onCalendarUpdated?.();
+    } catch (error) {
+      setEmailError(error.response?.data?.error || error.message || 'Failed to add to Google Calendar');
+    } finally {
+      setCalendarApproving(false);
+    }
+  };
+
   return (
     <div className="case-detail-page page-enter" style={{ '--case-color': caseColor }}>
       <div className="case-detail-hero card">
@@ -297,7 +314,26 @@ export default function CaseDetail({
           <div className="case-calendar-controls">
             <div className="case-detail-section-title">
               <h4>Calendar controls</h4>
-              {settingsSaving ? <span className="hint-chip">Saving...</span> : <span className="hint-chip">User controlled</span>}
+              {settingsSaving ? <span className="hint-chip">Saving...</span> : <span className="hint-chip">Review first</span>}
+            </div>
+            <div className="case-calendar-approval">
+              <div>
+                <strong>AI found a schedule candidate</strong>
+                <small>Review the deadline and related email. When it looks right, add it to Google Calendar manually.</small>
+              </div>
+              <button
+                className="btn-primary"
+                type="button"
+                onClick={approveCalendarUpdate}
+                disabled={calendarApproving || !primaryDeadline}
+              >
+                {calendarApproving ? 'Adding...' : 'Approve & add to Google Calendar'}
+              </button>
+              {calendarApproveUrl ? (
+                <a className="btn-ghost" href={calendarApproveUrl} target="_blank" rel="noreferrer">
+                  <ExternalLink size={13} /> Open Google event
+                </a>
+              ) : null}
             </div>
             <label className="case-setting-toggle">
               <input

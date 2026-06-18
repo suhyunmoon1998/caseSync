@@ -1091,6 +1091,102 @@ export const createCaseFolder = async ({
   return { case: toDeadlineUi(record) };
 };
 
+export const approveCaseCalendarUpdate = async (caseId) => {
+  const normalizedCaseId = safeCaseId(caseId);
+  if (!isValidCaseId(normalizedCaseId)) {
+    throw new Error('A valid case number is required');
+  }
+
+  const stored = await getCaseRecordsFromDb();
+  const target = stored.find((item) => item.caseId === normalizedCaseId);
+  if (!target) {
+    return null;
+  }
+
+  const accounts = await getAllAccountsRaw();
+  const account = accounts.find((entry) => entry.email === target.sourceAccount) || accounts[0];
+  if (!account?.tokens) {
+    throw new Error('Connected Google account not found');
+  }
+
+  const auth = getAuthClient(account.tokens, {
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    redirectUri: process.env.GOOGLE_REDIRECT_URI,
+  });
+
+  const responsePackage = buildResponsePackage({
+    proofServiceDate: target.proofServiceDate,
+    proofServiceMethod: target.proofServiceMethod || 'electronic',
+    discoverySets: target.discoverySets || [],
+    caseId: normalizedCaseId,
+    caseTitle: target.caseTitle || normalizedCaseId,
+  });
+  const deadlines = Array.isArray(target.deadlines) ? [...target.deadlines] : [];
+  if (
+    responsePackage?.responseDeadline
+    && !deadlines.some((item) => item.date === responsePackage.responseDeadline.date && item.action === responsePackage.responseDeadline.action)
+  ) {
+    deadlines.push(responsePackage.responseDeadline);
+  }
+
+  if (!deadlines.some((item) => normalizeDate(item?.date))) {
+    throw new Error('No valid deadline found to add to Google Calendar');
+  }
+
+  const calendarId = target.sourceCalendarId && target.sourceCalendarId !== 'CaseSync'
+    ? target.sourceCalendarId
+    : defaultCalendarId;
+  const payload = {
+    caseId: normalizedCaseId,
+    caseTitle: target.caseTitle || normalizedCaseId,
+    summary: target.summary || 'CaseSync reviewed deadline package.',
+    status: target.status || 'active',
+    trigger: null,
+    triggerName: target.triggerName || 'CaseSync review approval',
+    deadlines,
+    emailId: '',
+    sourceEmail: account.email,
+    sourceName: 'CaseSync review approval',
+    caseConfidence: target.caseConfidence ?? 100,
+    estimated: target.isEstimated,
+    proofServiceDate: target.proofServiceDate || '',
+    proofServiceMethod: responsePackage?.proofServiceMethod || target.proofServiceMethod || '',
+    discoverySets: responsePackage?.discoverySets || target.discoverySets || [],
+    responseDeadlineDate: responsePackage?.responseDeadlineDate || target.responseDeadlineDate || '',
+    responsePackage: responsePackage?.responseDeadline ? responsePackage : null,
+    raw: null,
+  };
+
+  const existing = await findEventByCaseId(auth, calendarId, normalizedCaseId);
+  const event = existing?.id
+    ? await updateCaseEvent(auth, calendarId, existing.id, payload)
+    : await createCaseEvent(auth, calendarId, payload);
+
+  await upsertRelatedCaseEvents(auth, calendarId, payload, event);
+  const record = await upsertCaseRecord({
+    ...target,
+    ...payload,
+    id: event.id,
+    htmlLink: event.htmlLink || '',
+    description: event.description || '',
+    lastUpdated: event.extendedProperties?.private?.lastUpdated || event.updated || new Date().toISOString(),
+    sourceAccount: account.email,
+    sourceCalendarId: calendarId,
+    sourceEventSummary: event.summary || '',
+    start: event.start || null,
+    end: event.end || null,
+    calendarAutoEnabled: false,
+    reviewBeforeCalendarUpdate: true,
+    calendarAction: 'Google Calendar event approved manually from CaseSync review',
+  });
+
+  return {
+    case: toDeadlineUi(record),
+    calendarEventUrl: event.htmlLink || '',
+  };
+};
+
 export const getCaseRecords = async (_targetAccountEmail = null) => {
   const stored = await getCaseRecordsFromDb();
   return stored.map(toDeadlineUi);

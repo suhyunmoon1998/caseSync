@@ -109,6 +109,11 @@ export const updateCaseSettings = async (caseId, payload) => {
   return response.data.case;
 };
 
+export const approveCaseCalendar = async (caseId) => {
+  const response = await client.post(`/api/cases/${encodeURIComponent(caseId)}/calendar/approve`);
+  return response.data;
+};
+
 export const deleteCase = async (caseId) => {
   const response = await client.delete(`/api/cases/${encodeURIComponent(caseId)}`);
   return response.data;
