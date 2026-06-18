@@ -440,6 +440,23 @@ const hasReliableDiscoveryDeadlineSource = (email = {}, parsed = {}) => {
   return legalServiceSignal && !statusOnlySubject;
 };
 
+const titleWords = (value = '') => normalizeTextMatch(value)
+  .split(/\s+/)
+  .map((word) => word.replace(/s$/i, ''))
+  .filter((word) => word.length >= 4);
+
+const deadlineMentionsDifferentCase = (deadline = {}, target = {}, cases = []) => {
+  const actionWords = new Set(titleWords(deadline.action || deadline.title || ''));
+  if (!actionWords.size) return false;
+
+  return cases.some((item) => {
+    if (!item?.caseId || item.caseId === target.caseId) return false;
+    const words = titleWords(item.caseTitle || item.caseId);
+    if (words.length < 2) return false;
+    return words.slice(0, 4).filter((word) => actionWords.has(word)).length >= 2;
+  });
+};
+
 const discoverySetsForPackage = (sets = []) => {
   const normalized = normalizeDiscoverySets(sets);
   return normalized.length ? normalized : ['Discovery responses'];
@@ -1477,7 +1494,10 @@ export const repairCaseFromStoredEmails = async (caseId) => {
   });
 
   if (!discoveryEmail) {
-    const cleanedDeadlines = (target.deadlines || []).filter((deadline) => !/^response due:\s*proof deadline/i.test(String(deadline?.action || '')));
+    const cleanedDeadlines = (target.deadlines || []).filter((deadline) => (
+      !/^response due:\s*proof deadline/i.test(String(deadline?.action || ''))
+      && !deadlineMentionsDifferentCase(deadline, target, stored)
+    ));
     const record = await upsertCaseRecord({
       ...target,
       deadlines: cleanedDeadlines,
