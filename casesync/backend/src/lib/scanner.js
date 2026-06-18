@@ -433,11 +433,16 @@ const hasReliableDiscoveryDeadlineSource = (email = {}, parsed = {}) => {
   }
 
   const subject = String(email.subject || '').trim();
-  const text = `${subject}\n${email.snippet || ''}\n${email.body || ''}\n${parsed.summary || ''}`;
+  const emailText = `${subject}\n${email.snippet || ''}\n${email.body || ''}`;
+  const parsedText = `${parsed.summary || ''}`;
+  const text = `${emailText}\n${parsedText}`;
   const statusOnlySubject = /\b(case status list|active case data transfer|data transfer update|eod|end of day|todo|to do)\b/i.test(subject);
+  const writtenDiscoveryInEmail = /\b(discovery served|written discovery|form interrogator(?:y|ies)|special interrogator(?:y|ies)|interrogator(?:y|ies)|requests?\s+for\s+production|requests?\s+for\s+admissions?|rfps?|rfas?|s[-\s]?rogs?|g[-\s]?rogs?|e[-\s]?rogs?)\b/i.test(emailText);
+  const courtNoticeOnly = /\b(court eservice|eservice-donotreply@lacourt|minute order|notice of case management conference|case management conference|cmc|hearing|osc declaration|clerk'?s certificate)\b/i.test(text)
+    && !writtenDiscoveryInEmail;
   const legalServiceSignal = /\b(proof of service|electronic service|personal service|mail service|served|service by|discovery served|interrogator(?:y|ies)|requests?\s+for\s+production|requests?\s+for\s+admissions?|rfps?|rfas?|g[-\s]?rogs?|e[-\s]?rogs?)\b/i.test(text);
 
-  return legalServiceSignal && !statusOnlySubject;
+  return legalServiceSignal && writtenDiscoveryInEmail && !statusOnlySubject && !courtNoticeOnly;
 };
 
 const titleWords = (value = '') => normalizeTextMatch(value)
