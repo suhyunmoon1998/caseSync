@@ -294,7 +294,7 @@ export const createCaseEvent = async (auth, calendarId, eventData) => {
       private: {
         casesync: 'true',
         caseId,
-        triggerId: trigger?.id || trigger,
+        triggerId: trigger?.id || trigger || '',
         triggerName: triggerName || trigger?.name || 'CaseSync',
         lastEmailId: emailId || raw?.id || '',
         lastUpdated: new Date().toISOString(),
