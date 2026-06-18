@@ -8636,3 +8636,127 @@ td {
   line-height: 1.25 !important;
   color: #334155 !important;
 }
+
+/* Case list roster: name, number, status, next deadline, related email count. */
+.app-shell-clean .cases-grid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 10px !important;
+}
+
+.app-shell-clean .case-status-row {
+  width: 100% !important;
+  min-height: 92px !important;
+  padding: 14px 16px !important;
+  display: grid !important;
+  grid-template-columns: 4px 1fr !important;
+  gap: 14px !important;
+  align-items: stretch !important;
+  text-align: left !important;
+  border-radius: 22px !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+}
+
+.app-shell-clean .case-status-row:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 20px 44px rgba(37, 99, 235, 0.13) !important;
+}
+
+.app-shell-clean .case-status-row .case-folder-mark {
+  width: 4px !important;
+  min-height: 100% !important;
+  border-radius: 999px !important;
+  background: var(--case-color, #0071e3) !important;
+}
+
+.app-shell-clean .case-status-main {
+  display: grid !important;
+  grid-template-columns: minmax(220px, 1.35fr) minmax(150px, 0.8fr) minmax(110px, 0.55fr) minmax(240px, 1.35fr) minmax(92px, 0.45fr) !important;
+  gap: 14px !important;
+  align-items: center !important;
+  min-width: 0 !important;
+}
+
+.app-shell-clean .case-status-row .case-folder-body,
+.app-shell-clean .case-status-cell {
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 5px !important;
+}
+
+.app-shell-clean .case-status-row .case-folder-kicker,
+.app-shell-clean .case-status-cell small {
+  font-size: 10px !important;
+  line-height: 1 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.12em !important;
+  color: #64748b !important;
+}
+
+.app-shell-clean .case-status-row .case-folder-body > strong {
+  font-size: 17px !important;
+  line-height: 1.16 !important;
+  letter-spacing: -0.025em !important;
+  color: #0f172a !important;
+  overflow-wrap: anywhere !important;
+}
+
+.app-shell-clean .case-status-cell strong {
+  font-size: 13px !important;
+  line-height: 1.22 !important;
+  color: #0f172a !important;
+  overflow-wrap: anywhere !important;
+}
+
+.app-shell-clean .case-status-cell em {
+  justify-self: start !important;
+  padding: 3px 8px !important;
+  border-radius: 999px !important;
+  background: rgba(37, 99, 235, 0.08) !important;
+  color: #1d4ed8 !important;
+  font-size: 11px !important;
+  font-style: normal !important;
+  line-height: 1 !important;
+}
+
+.app-shell-clean .case-status-email-count {
+  justify-items: center !important;
+  text-align: center !important;
+}
+
+.app-shell-clean .case-status-email-count strong {
+  min-width: 44px !important;
+  min-height: 34px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  border-radius: 14px !important;
+  background: linear-gradient(135deg, rgba(0, 113, 227, 0.14), rgba(255, 255, 255, 0.9)) !important;
+  color: #075985 !important;
+  font-size: 18px !important;
+}
+
+@media (max-width: 1180px) {
+  .app-shell-clean .case-status-main {
+    grid-template-columns: minmax(220px, 1fr) minmax(140px, 0.8fr) minmax(100px, 0.6fr) !important;
+  }
+
+  .app-shell-clean .case-status-main .case-status-cell:nth-of-type(3),
+  .app-shell-clean .case-status-email-count {
+    grid-column: span 1 !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell-clean .case-status-row {
+    min-height: auto !important;
+  }
+
+  .app-shell-clean .case-status-main {
+    grid-template-columns: 1fr !important;
+  }
+
+  .app-shell-clean .case-status-email-count {
+    justify-items: start !important;
+    text-align: left !important;
+  }
+}

@@ -105,6 +105,7 @@ const normalizeCaseRow = (row) => ({
   calendarAutoEnabled: Boolean(row.calendar_auto_enabled),
   reviewBeforeCalendarUpdate: row.review_before_calendar_update !== false,
   calendarUpdateHistory: row.calendar_update_history || [],
+  relatedEmailCount: Number(row.related_email_count || 0),
 });
 
 const normalizeCaseEmailRow = (row) => ({
@@ -1121,13 +1122,33 @@ const mergeExistingDuplicateCaseRecordsByNumber = async () => {
 
 export const getCaseRecordsFromDb = async () => {
   if (storageMode === 'postgres') {
-    const { rows } = await getPool().query('select * from cases order by updated_at desc');
+    const { rows } = await getPool().query(`
+      select cases.*, coalesce(email_counts.related_email_count, 0)::integer as related_email_count
+      from cases
+      left join (
+        select case_id, count(*)::integer as related_email_count
+        from case_emails
+        group by case_id
+      ) email_counts on email_counts.case_id = cases.case_id
+      order by cases.updated_at desc
+    `);
     return rows.map(normalizeCaseRow);
   }
 
   await db.read();
   db.data = sanitizeData(db.data || {});
-  return db.data.cases.slice();
+  const emailCounts = db.data.emails.reduce((map, email) => {
+    const caseId = String(email.caseId || '').trim();
+    if (caseId) {
+      map.set(caseId, (map.get(caseId) || 0) + 1);
+    }
+    return map;
+  }, new Map());
+
+  return db.data.cases.map((item) => ({
+    ...item,
+    relatedEmailCount: emailCounts.get(item.caseId) || 0,
+  }));
 };
 
 export const updateCaseRecordStatus = async (caseId, status) => {
