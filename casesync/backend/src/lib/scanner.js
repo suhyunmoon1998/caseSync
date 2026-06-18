@@ -183,6 +183,48 @@ const caseFolderSearchTerms = (folder = {}) => {
       terms.push(clean);
     }
   };
+  const titleAliasStopwords = new Set([
+    'case',
+    'company',
+    'corporation',
+    'inc',
+    'incorporated',
+    'corp',
+    'llc',
+    'ltd',
+    'limited',
+    'building',
+    'exchange',
+    'coffee',
+    'hardware',
+    'transport',
+    'plaintiff',
+    'defendant',
+    'estate',
+    'the',
+    'and',
+    'for',
+    'with',
+  ]);
+  const addTitleAliases = (value = '') => {
+    const cleanTitle = String(value || '')
+      .replace(/[()]/g, ' ')
+      .replace(/\bet\s+al\.?\b/gi, ' ')
+      .replace(/\b(case|incorporated|corporation|company)\b/gi, ' ')
+      .replace(/[^\w\s.-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const words = cleanTitle
+      .split(/\s+/)
+      .map((word) => word.trim())
+      .filter((word) => word.length >= 3 && !titleAliasStopwords.has(word.toLowerCase()));
+
+    words.slice(0, 4).forEach(addTerm);
+
+    for (let index = 0; index < Math.min(words.length - 1, 4); index += 1) {
+      addTerm(`${words[index]} ${words[index + 1]}`);
+    }
+  };
   const caseId = safeCaseId(folder.caseId);
   const title = String(folder.caseTitle || '').trim();
 
@@ -196,6 +238,7 @@ const caseFolderSearchTerms = (folder = {}) => {
 
   if (title && title !== caseId) {
     addTerm(title);
+    addTitleAliases(title);
     const compactTitle = title
       .replace(/\b(vs?\.?|versus)\b/gi, ' v ')
       .replace(/\b(incorporated)\b/gi, 'inc')
@@ -219,7 +262,45 @@ const caseFolderSearchTerms = (folder = {}) => {
     }
   }
 
-  return [...new Set(terms.map((item) => String(item || '').trim()).filter((item) => item.length >= 3))].slice(0, 12);
+  return [...new Set(terms.map((item) => String(item || '').trim()).filter((item) => item.length >= 3))].slice(0, 18);
+};
+
+const hasExtractedAttachmentText = (email = {}) => {
+  if (!Array.isArray(email.attachments)) return false;
+  return email.attachments.some((attachment) => attachment?.extracted || Number(attachment?.textLength || 0) > 0);
+};
+
+const calendarCandidateDeadlines = (parsed = {}) => {
+  if (!Array.isArray(parsed.deadlines)) return [];
+  return parsed.deadlines
+    .map((deadline) => ({
+      ...deadline,
+      date: normalizeDate(deadline.date),
+    }))
+    .filter((deadline) => deadline.date);
+};
+
+const mergeCaseDeadlines = (...deadlineGroups) => {
+  const seen = new Set();
+  const merged = [];
+
+  for (const group of deadlineGroups) {
+    for (const deadline of Array.isArray(group) ? group : []) {
+      const date = normalizeDate(deadline?.date);
+      if (!date) continue;
+      const action = String(deadline.action || deadline.title || 'Calendar candidate').trim();
+      const key = `${date}|${action.toLowerCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push({
+        ...deadline,
+        date,
+        action,
+      });
+    }
+  }
+
+  return merged;
 };
 
 const emailMatchesCaseFolder = (email = {}, folder = {}) => {
@@ -787,6 +868,8 @@ export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
             if (proofDeadline && !deadlines.some((item) => item.date === proofDeadline.date && item.action === proofDeadline.action)) {
               deadlines.push(proofDeadline);
             }
+            const extractedAttachmentText = hasExtractedAttachmentText(email);
+            const candidateDeadlines = calendarCandidateDeadlines(parsed);
 
             await storeCaseEmail({
               email,
@@ -795,14 +878,40 @@ export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
               caseId: matchedCaseId,
               parsed,
               caseConfidence,
-              classification: proofDeadline ? 'deadline-package' : 'case-folder-match',
+              classification: proofDeadline ? 'deadline-package' : extractedAttachmentText ? 'attachment-ai-review' : 'case-folder-match',
               needsReview: !proofDeadline || caseConfidence < 80,
               sourceReason: proofDeadline
                 ? 'Matched by case folder number/name and detected a response deadline package.'
-                : 'Matched by case folder number/name. Review to confirm relevance.',
+                : extractedAttachmentText
+                  ? 'Matched by case folder/name and AI reviewed extracted attachment text for schedule candidates.'
+                  : 'Matched by case folder number/name. Review to confirm relevance.',
             });
 
             if (!proofDeadline) {
+              if (extractedAttachmentText && candidateDeadlines.length) {
+                await upsertCaseRecord({
+                  ...folder,
+                  caseId: matchedCaseId,
+                  caseTitle: folder.caseTitle || parsed.caseTitle || matchedCaseId,
+                  caseColor: folder.caseColor || '',
+                  triggerName: folder.triggerName || 'Case folder search',
+                  summary: parsed.summary || folder.summary || 'AI reviewed an attachment and found schedule candidates for review.',
+                  deadlines: mergeCaseDeadlines(folder.deadlines || [], candidateDeadlines),
+                  caseConfidence,
+                  isEstimated: shouldTreatAsEstimated(matchedCaseId, caseConfidence, parsed.estimated),
+                  proofServiceDate: parsed.proofServiceDate || folder.proofServiceDate || '',
+                  proofServiceMethod: parsed.proofServiceMethod || folder.proofServiceMethod || '',
+                  discoverySets: normalizeDiscoverySets(parsed.discoverySets || folder.discoverySets || []),
+                  sourceAccount: account.email,
+                  sourceCalendarId: folder.sourceCalendarId || defaultCalendarId,
+                  sourceEventSummary: folder.sourceEventSummary || '',
+                  lastUpdated: new Date().toISOString(),
+                  calendarAutoEnabled: folder.calendarAutoEnabled,
+                  reviewBeforeCalendarUpdate: folder.reviewBeforeCalendarUpdate,
+                  calendarAction: 'AI found schedule candidates from an attachment. Review before adding to Google Calendar.',
+                });
+                summary.casesUpdated += 1;
+              }
               continue;
             }
 
