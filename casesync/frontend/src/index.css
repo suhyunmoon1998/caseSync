@@ -8284,3 +8284,92 @@ td {
   letter-spacing: -0.032em !important;
   max-width: 640px !important;
 }
+
+/* Balanced onboarding hero: keep headline and step pills in the same visual family. */
+.app-shell-clean .commercial-onboarding {
+  grid-template-columns: minmax(280px, 0.9fr) minmax(360px, 1.1fr) !important;
+  align-items: center !important;
+  gap: clamp(24px, 4vw, 56px) !important;
+  min-height: auto !important;
+}
+
+.app-shell-clean .commercial-onboarding > div:first-child {
+  min-width: 0 !important;
+}
+
+.app-shell-clean .commercial-onboarding > div:first-child h3 {
+  font-size: clamp(26px, 3vw, 42px) !important;
+  line-height: 0.98 !important;
+  letter-spacing: -0.055em !important;
+  max-width: 560px !important;
+  margin: 8px 0 0 !important;
+}
+
+.app-shell-clean .commercial-onboarding .eyebrow {
+  font-size: 10px !important;
+  letter-spacing: 0.16em !important;
+}
+
+.app-shell-clean .onboarding-steps {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(150px, 1fr)) !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+}
+
+.app-shell-clean .onboarding-steps span {
+  min-height: 48px !important;
+  padding: 12px 18px !important;
+  font-size: clamp(11px, 0.8vw, 13px) !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.015em !important;
+  text-align: center !important;
+}
+
+.app-shell-clean .canvas-stage-head h1 {
+  font-size: clamp(28px, 3.4vw, 48px) !important;
+  line-height: 0.98 !important;
+  letter-spacing: -0.055em !important;
+  max-width: 680px !important;
+}
+
+.app-shell-clean .canvas-stage-head {
+  grid-template-columns: minmax(280px, 0.9fr) auto !important;
+  align-items: end !important;
+  gap: 22px !important;
+}
+
+.app-shell-clean .canvas-stage-head .hero-copy {
+  max-width: 680px !important;
+  font-size: clamp(13px, 1vw, 16px) !important;
+  line-height: 1.35 !important;
+}
+
+.app-shell-clean .canvas-stage-head .hero-actions {
+  align-self: end !important;
+  margin-bottom: 4px !important;
+  flex-wrap: nowrap !important;
+}
+
+.app-shell-clean .canvas-stage-head .hero-actions .btn-primary,
+.app-shell-clean .canvas-stage-head .hero-actions .btn-ghost {
+  min-height: 38px !important;
+  padding: 9px 15px !important;
+  font-size: 12px !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 1050px) {
+  .app-shell-clean .commercial-onboarding {
+    grid-template-columns: 1fr !important;
+  }
+
+  .app-shell-clean .canvas-stage-head {
+    grid-template-columns: 1fr !important;
+    align-items: start !important;
+  }
+
+  .app-shell-clean .onboarding-steps {
+    grid-template-columns: 1fr !important;
+  }
+}
