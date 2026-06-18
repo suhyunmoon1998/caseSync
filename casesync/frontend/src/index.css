@@ -8581,3 +8581,58 @@ td {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Dashboard stat cards: compact boxes, readable long date/time values. */
+.app-shell-clean .canvas-view .stats {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+}
+
+.app-shell-clean .canvas-view .stats .stat {
+  min-height: 118px !important;
+  height: auto !important;
+  max-height: 150px !important;
+  padding: 16px 18px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  overflow: hidden !important;
+}
+
+.app-shell-clean .canvas-view .stats .stat-icon,
+.app-shell-clean .canvas-view .stats .stat-icon-danger,
+.app-shell-clean .canvas-view .stats .stat-icon-success,
+.app-shell-clean .canvas-view .stats .stat-icon-warning {
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 8px !important;
+}
+
+.app-shell-clean .canvas-view .stats .stat-icon svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+.app-shell-clean .canvas-view .stats .stat .n {
+  font-size: clamp(24px, 2.2vw, 34px) !important;
+  line-height: 0.98 !important;
+  letter-spacing: -0.045em !important;
+  white-space: normal !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+}
+
+.app-shell-clean .canvas-view .stats .stat:nth-child(6) .n,
+.app-shell-clean .canvas-view .stats .stat:nth-child(7) .n {
+  font-size: clamp(18px, 1.55vw, 24px) !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.035em !important;
+}
+
+.app-shell-clean .canvas-view .stats .stat > div:last-child {
+  font-size: 12px !important;
+  line-height: 1.25 !important;
+  color: #334155 !important;
+}
