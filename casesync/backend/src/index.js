@@ -8,6 +8,7 @@ import { initDb, setScanState, getScanState, getStorageMode } from './lib/db.js'
 import { getNextScheduledRun, runAutoScan } from './lib/scanner.js';
 import authRouter from './routes/auth.js';
 import triggersRouter from './routes/triggers.js';
+import triggerAssistantRouter from './routes/triggerAssistant.js';
 import scanRouter from './routes/scan.js';
 import casesRouter from './routes/cases.js';
 import calendarRouter from './routes/calendar.js';
@@ -65,6 +66,7 @@ app.use(session({
 
 app.use('/auth', authRouter);
 app.use('/api/triggers', triggersRouter);
+app.use('/api/trigger-assistant', triggerAssistantRouter);
 app.use('/api/scan', scanRouter);
 app.use('/api/cases', casesRouter);
 app.use('/api/calendar', calendarRouter);

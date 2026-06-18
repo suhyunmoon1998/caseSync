@@ -4,7 +4,6 @@ import Dashboard from './pages/Dashboard';
 import Triggers from './pages/Triggers';
 import Cases from './pages/Cases';
 import Calendar from './pages/Calendar';
-import Sop from './pages/Sop';
 import caseSyncLogo from './assets/casesync-logo.png';
 import {
   getAccounts,
@@ -420,13 +419,6 @@ export default function App() {
         description: 'Open a case to see the next due date, related emails, and calendar notes in plain English.',
       },
       {
-        key: 'sop',
-        label: 'SOP Review',
-        kicker: '30-60 day audit',
-        title: 'SOP & missed trigger review',
-        description: 'Review missed triggers, build the master SOP list, and turn repeat work into automation.',
-      },
-      {
         key: 'dashboard',
         label: 'Home',
         kicker: 'Today',
@@ -455,20 +447,9 @@ export default function App() {
 
     const view = {
       cases: <Cases {...casesProps} />,
-      sop: (
-        <Sop
-          accounts={accounts}
-          cases={cases}
-          scanLogs={scanLogs}
-          loadingScan={isLoading.scan}
-          onRunScan={onRunScan}
-          onOpenTriggers={() => setActiveView('triggers')}
-          onOpenCalendar={() => setActiveView('calendar')}
-        />
-      ),
       dashboard: <Dashboard {...dashboardProps} />,
       calendar: <Calendar cases={cases} accounts={accounts} onManualCaseCreated={loadAll} />,
-      triggers: <Triggers accounts={accounts} onSaved={onTriggerSaved} />,
+      triggers: <Triggers accounts={accounts} onSaved={onTriggerSaved} onRunScan={onRunScan} />,
     }[current.key];
 
     return (

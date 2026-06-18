@@ -4,6 +4,48 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001';
 
+const readBoundedInt = (value, fallback, min, max) => {
+  const parsed = Number.parseInt(String(value || ''), 10);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.max(min, Math.min(max, parsed));
+};
+
+const AI_MAX_INPUT_CHARS = readBoundedInt(process.env.AI_MAX_INPUT_CHARS, 6500, 1800, 16000);
+const AI_MAX_OUTPUT_TOKENS = readBoundedInt(process.env.AI_MAX_OUTPUT_TOKENS, 800, 350, 1200);
+
+const AI_RELEVANCE_KEYWORDS = [
+  'proof of service',
+  'court eservice',
+  'service of',
+  'served',
+  'discovery',
+  'interrogator',
+  'requests for production',
+  'request for production',
+  'requests for admission',
+  'request for admission',
+  'rfp',
+  'rfa',
+  'e-rog',
+  'g-rog',
+  'hearing',
+  'notice',
+  'case management conference',
+  'cmc',
+  'trial',
+  'mediation',
+  'arbitration',
+  'deadline',
+  'due',
+  'calendar',
+  'meet and confer',
+  'vendor',
+  'invoice',
+  'payment',
+];
+
 const CASE_CONFIDENCE_CONFIRM_THRESHOLD = 80;
 
 const normalizeDate = (value) => {
@@ -380,24 +422,92 @@ const resolveEstimated = (estimatedInput, hasHintCaseId, caseConfidence) => {
   return caseConfidence < CASE_CONFIDENCE_CONFIRM_THRESHOLD;
 };
 
+const normalizeAiText = (value) => String(value || '')
+  .replace(/\r/g, '\n')
+  .replace(/[ \t]+/g, ' ')
+  .replace(/\n{3,}/g, '\n\n')
+  .trim();
+
+const hasAiRelevantSignal = (value) => {
+  const lower = String(value || '').toLowerCase();
+  return AI_RELEVANCE_KEYWORDS.some((keyword) => lower.includes(keyword));
+};
+
+const buildAiEmailBody = ({ body = '' }) => {
+  const normalized = normalizeAiText(body);
+  if (!normalized) {
+    return '';
+  }
+
+  const flattened = normalized.replace(/\s+/g, ' ');
+  const lower = flattened.toLowerCase();
+  const ranges = [{ start: 0, end: Math.min(flattened.length, 1400) }];
+
+  for (const keyword of AI_RELEVANCE_KEYWORDS) {
+    let searchFrom = 0;
+    let matches = 0;
+
+    while (matches < 4) {
+      const index = lower.indexOf(keyword, searchFrom);
+      if (index < 0) {
+        break;
+      }
+
+      ranges.push({
+        start: Math.max(0, index - 750),
+        end: Math.min(flattened.length, index + keyword.length + 1250),
+      });
+
+      searchFrom = index + keyword.length;
+      matches += 1;
+    }
+  }
+
+  const merged = ranges
+    .sort((a, b) => a.start - b.start)
+    .reduce((acc, range) => {
+      const last = acc[acc.length - 1];
+      if (last && range.start <= last.end + 120) {
+        last.end = Math.max(last.end, range.end);
+      } else {
+        acc.push({ ...range });
+      }
+      return acc;
+    }, []);
+
+  return merged
+    .map((range) => flattened.slice(range.start, range.end).trim())
+    .filter(Boolean)
+    .join('\n\n--- relevant excerpt ---\n\n')
+    .slice(0, AI_MAX_INPUT_CHARS);
+};
+
 export const parseEmail = async ({ subject = '', body = '', from = '', date = '', caseIdPatterns = [] }) => {
   const hintCaseId = extractWithRegex({ body, subject, from, caseIdPatterns });
   const fullText = `${subject}\n${from}\n${body}`;
   const fallback = parseProofDateFromText(fullText);
   const fallbackDiscoverySets = extractDiscoverySetsFromText(fullText);
+  const aiRelevant = hasAiRelevantSignal(fullText);
+  const aiBody = buildAiEmailBody({ body });
 
   const prompt = [
     `Today is ${new Date().toISOString().slice(0, 10)}.`,
     '',
-    'Analyze this email and extract all actionable information.',
+    'Analyze these cost-controlled legal email excerpts and decide whether CaseSync should propose calendar items.',
+    'Use only the provided text. Do not invent deadlines, case numbers, proof dates, or service methods.',
+    'If there is no scheduling action, return hasActionableDeadline false and an empty deadlines array.',
+    'If this is written discovery served with proof of service, extract proofServiceDate and proofServiceMethod. CaseSync will calculate the response deadline separately.',
+    'Service method must be one of: personal, electronic, mail, or null. Personal service means 30 days total. Electronic service means 32 days total. Mail service means 35 days total where applicable.',
+    'Default to electronic when the service method is unclear, because this practice normally receives service electronically. Only return personal or mail when the email/proof text clearly says personal service or service by mail.',
+    'Do not calculate the discovery response deadline yourself unless the email states a separate explicit deadline; CaseSync calculates it from proofServiceDate + proofServiceMethod.',
     '',
     'Email:',
     `From: ${from}`,
     `Subject: ${subject}`,
     `Date: ${date}`,
     '',
-    'Body:',
-    body,
+    'Relevant body excerpts:',
+    aiBody || '[No body text extracted]',
     '',
     hintCaseId ? `Hint case IDs: ${hintCaseId}` : null,
     hintCaseId ? '' : null,
@@ -462,6 +572,10 @@ export const parseEmail = async ({ subject = '', body = '', from = '', date = ''
         aiAnalysis: {
           usedAi: false,
           model: null,
+          inputMode: 'rule_based_no_ai',
+          inputChars: 0,
+          maxOutputTokens: 0,
+          costGuard: 'rule_based_first',
           summary: 'Rule-based parser detected proof of service, discovery set labels, and a case identifier. AI was not used for this email.',
           extracted: {
             caseId: hintCaseId,
@@ -475,13 +589,33 @@ export const parseEmail = async ({ subject = '', body = '', from = '', date = ''
       throw new Error('Rule-based parser completed');
     }
 
+    if (!aiRelevant) {
+      data.aiAnalysis = {
+        usedAi: false,
+        model: null,
+        inputMode: 'skipped_no_scheduling_signal',
+        inputChars: 0,
+        maxOutputTokens: 0,
+        costGuard: 'keyword_gate',
+        summary: 'AI was skipped because the email did not contain legal scheduling or deadline keywords.',
+        extracted: {
+          caseId: hintCaseId || '',
+          proofServiceDate: data.proofServiceDate || '',
+          proofServiceMethod: data.proofServiceMethod || '',
+          discoverySets: data.discoverySets || [],
+          hasActionableDeadline: false,
+        },
+      };
+      throw new Error('AI skipped: no scheduling signal');
+    }
+
     if (!process.env.ANTHROPIC_API_KEY) {
       throw new Error('Missing ANTHROPIC_API_KEY');
     }
 
     const response = await anthropic.messages.create({
       model: ANTHROPIC_MODEL,
-      max_tokens: 1400,
+      max_tokens: AI_MAX_OUTPUT_TOKENS,
       messages: [{
         role: 'user',
         content: prompt,
@@ -516,6 +650,10 @@ export const parseEmail = async ({ subject = '', body = '', from = '', date = ''
         aiAnalysis: {
           usedAi: true,
           model: ANTHROPIC_MODEL,
+          inputMode: 'compressed_relevant_excerpts',
+          inputChars: aiBody.length,
+          maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
+          costGuard: 'rule_based_first_keyword_gate_snippet_only',
           summary: typeof parsed.summary === 'string' ? parsed.summary.trim() : '',
           extracted: {
             caseId,

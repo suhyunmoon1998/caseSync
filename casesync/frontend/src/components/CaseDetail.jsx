@@ -42,6 +42,20 @@ const deadlineMood = (date) => {
 
 const statusLabel = (status) => (status === 'active' ? 'In progress' : status || 'active');
 
+const serviceMethodLabel = (method) => {
+  const key = String(method || '').toLowerCase().trim();
+  if (key === 'personal') {
+    return 'personal (+30 days)';
+  }
+  if (key === 'mail') {
+    return 'mail (+35 days)';
+  }
+  if (key === 'electronic') {
+    return 'electronic (+32 days)';
+  }
+  return 'method unknown';
+};
+
 const deadlineKey = (deadline) => [
   deadline?.date || '',
   String(deadline?.action || 'Review deadline').trim().toLowerCase().replace(/\s+/g, ' '),
@@ -298,7 +312,7 @@ export default function CaseDetail({
             <div className="case-summary-item">
               <span>Proof of Service</span>
               <strong>{formatShortDate(caseItem.proofServiceDate)}</strong>
-              <small>{caseItem.proofServiceMethod || 'method unknown'}</small>
+              <small>{serviceMethodLabel(caseItem.proofServiceMethod)}</small>
             </div>
             <div className="case-summary-item">
               <span>Discovery sets</span>
@@ -373,7 +387,7 @@ export default function CaseDetail({
                     <strong>{formatShortDate(item.date)}</strong>
                     <p>{item.action || 'Review deadline'}</p>
                     <small>Source: linked email/calendar package · Sets: {discoverySets}</small>
-                    {item.serviceMethodCorrected ? <small>Service method corrected to electronic-service default (+32 days).</small> : null}
+                    {item.serviceMethod ? <small>Service method: {serviceMethodLabel(item.serviceMethod)}</small> : null}
                   </div>
                   <span className={mood.className}>{mood.label}</span>
                 </div>
@@ -394,6 +408,7 @@ export default function CaseDetail({
                       <strong>{formatShortDate(item.date)}</strong>
                       <p>{item.action || 'Review deadline'}</p>
                       <small>Historical detection. Kept for audit trail, hidden from active planning.</small>
+                      {item.serviceMethod ? <small>Service method: {serviceMethodLabel(item.serviceMethod)}</small> : null}
                     </div>
                     <span className={mood.className}>{mood.label}</span>
                   </div>
@@ -448,7 +463,7 @@ export default function CaseDetail({
                         <div>
                           <span>Proof of Service</span>
                           <strong>{formatShortDate(email.raw.aiAnalysis.extracted?.proofServiceDate)}</strong>
-                          <small>{email.raw.aiAnalysis.extracted?.proofServiceMethod || 'method unknown'}</small>
+                          <small>{serviceMethodLabel(email.raw.aiAnalysis.extracted?.proofServiceMethod)}</small>
                         </div>
                         <div>
                           <span>Discovery sets</span>

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CalendarClock, Save } from 'lucide-react';
+import { Bot, CalendarClock, Save, Send, Sparkles, Wand2 } from 'lucide-react';
 import TriggerCard from '../components/TriggerCard';
 import {
   getTriggers,
   createTrigger,
+  suggestTrigger,
   updateTrigger,
   deleteTrigger,
   toggleTrigger,
@@ -15,11 +16,21 @@ const tagFromText = (value = '') => {
   return trimmed ? trimmed : '';
 };
 
-export default function Triggers({ accounts, onSaved }) {
+export default function Triggers({ accounts, onSaved, onRunScan }) {
   const [triggers, setTriggers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(null);
   const [error, setError] = useState('');
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [assistantInput, setAssistantInput] = useState('');
+  const [assistantLoading, setAssistantLoading] = useState(false);
+  const [assistantDraft, setAssistantDraft] = useState(null);
+  const [assistantMessages, setAssistantMessages] = useState([
+    {
+      role: 'assistant',
+      text: 'Tell me what emails CaseSync should watch. I will draft the trigger, then you can create it and scan inboxes for calendar review.',
+    },
+  ]);
 
   const [name, setName] = useState('');
   const [senderDraft, setSenderDraft] = useState('');
@@ -116,6 +127,82 @@ export default function Triggers({ accounts, onSaved }) {
 
   const removeTag = (setter, value) => {
     setter((prev) => prev.filter((item) => item !== value));
+  };
+
+  const applyDraftToForm = (draft = {}) => {
+    setEditing(null);
+    setName(draft.name || '');
+    setSenderEmails(Array.isArray(draft.senderEmails) ? draft.senderEmails : []);
+    setKeywords(Array.isArray(draft.keywords) ? draft.keywords : []);
+    setCaseIdPatterns(Array.isArray(draft.caseIdPatterns) ? draft.caseIdPatterns : []);
+    setCalendarId(draft.calendarId || 'primary');
+    setCalendarEmail(draft.accountEmail || accountOptions[0] || '');
+    setEnabled(draft.enabled !== false);
+    setSenderDraft('');
+    setKeywordDraft('');
+    setPatternDraft('');
+  };
+
+  const askAssistant = async (messageOverride = '') => {
+    const message = String(messageOverride || assistantInput || '').trim();
+    if (!message) {
+      return;
+    }
+
+    setAssistantInput('');
+    setAssistantLoading(true);
+    setError('');
+    setAssistantMessages((prev) => [...prev, { role: 'user', text: message }]);
+
+    try {
+      const result = await suggestTrigger({
+        message,
+        accountEmails: accountOptions,
+      });
+      const draft = result.trigger || null;
+      if (draft) {
+        setAssistantDraft(draft);
+        applyDraftToForm(draft);
+      }
+      setAssistantMessages((prev) => [...prev, {
+        role: 'assistant',
+        text: result.reply || 'I drafted a trigger. Review it, then create the rule and scan inboxes.',
+        source: result.source,
+      }]);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to ask trigger assistant');
+      setAssistantMessages((prev) => [...prev, {
+        role: 'assistant',
+        text: 'I could not draft that trigger yet. Try describing the email type, sender, or deadline you want to catch.',
+      }]);
+    } finally {
+      setAssistantLoading(false);
+    }
+  };
+
+  const createDraftAndScan = async () => {
+    if (!assistantDraft) {
+      setError('Ask the assistant to draft a trigger first.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      await createTrigger(assistantDraft);
+      await refresh();
+      await onSaved?.();
+      setAssistantMessages((prev) => [...prev, {
+        role: 'assistant',
+        text: 'Rule created. I am starting a Gmail scan now. Calendar items will stay in review until you approve them.',
+      }]);
+      await onRunScan?.();
+      setAssistantDraft(null);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to create trigger');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const submit = async () => {
@@ -309,12 +396,119 @@ export default function Triggers({ accounts, onSaved }) {
 
       {error ? <div className="toast">{error}</div> : null}
 
-      <div className="layout-grid two-col trigger-editor-grid">
+      <div className="card trigger-chat-builder">
+        <div className="trigger-chat-head">
+          <div>
+            <span className="eyebrow">AI rule builder</span>
+            <h3>Describe the emails. CaseSync will build the trigger.</h3>
+            <p className="meta">
+              Example: “Watch emails from opposing counsel for proof of service and discovery, then prepare calendar reminders for review.”
+            </p>
+          </div>
+          <span className="ai-cost-pill">
+            <Sparkles size={14} />
+            Haiku cost-safe
+          </span>
+        </div>
+
+        <div className="trigger-prompt-row">
+          <button className="btn-ghost" type="button" onClick={() => askAssistant('Watch for written discovery served by opposing counsel, including proof of service, interrogatories, RFPs, RFAs, and calculate response deadlines.')}>
+            Discovery served
+          </button>
+          <button className="btn-ghost" type="button" onClick={() => askAssistant('Watch for court notices, CMC notices, hearing notices, minute orders, and case management statement deadlines.')}>
+            Court / CMC notices
+          </button>
+          <button className="btn-ghost" type="button" onClick={() => askAssistant('Watch for vendor emails with invoices, payment due dates, uploads, transcript deadlines, records deadlines, and renewal notices.')}>
+            Vendor deadlines
+          </button>
+        </div>
+
+        <div className="trigger-chat-grid">
+          <div className="trigger-chat-window" aria-live="polite">
+            {assistantMessages.map((message, index) => (
+              <div className={`chat-bubble ${message.role === 'user' ? 'is-user' : 'is-assistant'}`} key={`${message.role}-${index}`}>
+                {message.role === 'assistant' ? <Bot size={15} /> : null}
+                <span>{message.text}</span>
+              </div>
+            ))}
+            {assistantLoading ? (
+              <div className="chat-bubble is-assistant">
+                <Bot size={15} />
+                <span>Drafting a safe trigger...</span>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="trigger-draft-panel">
+            <div className="trigger-draft-title">
+              <Wand2 size={16} />
+              <strong>Draft trigger</strong>
+            </div>
+            {!assistantDraft ? (
+              <p className="meta">No draft yet. Ask the assistant or choose a quick prompt.</p>
+            ) : (
+              <>
+                <h4>{assistantDraft.name}</h4>
+                <div className="trigger-draft-section">
+                  <span className="meta">Keywords</span>
+                  <div className="tag-row">
+                    {(assistantDraft.keywords || []).slice(0, 10).map((item) => (
+                      <span className="tag" key={`draft-keyword-${item}`}>{item}</span>
+                    ))}
+                  </div>
+                </div>
+                <div className="trigger-draft-section">
+                  <span className="meta">Senders</span>
+                  <div className="tag-row">
+                    {(assistantDraft.senderEmails || []).length ? assistantDraft.senderEmails.map((item) => (
+                      <span className="tag" key={`draft-sender-${item}`}>{item}</span>
+                    )) : <span className="meta">Any sender matching keywords</span>}
+                  </div>
+                </div>
+                <div className="trigger-draft-section">
+                  <span className="meta">Calendar behavior</span>
+                  <p className="meta">Creates a scan rule. Calendar items remain review-only until approved.</p>
+                </div>
+                <button className="btn-primary" type="button" onClick={createDraftAndScan} disabled={loading || assistantLoading}>
+                  Create rule + scan inboxes
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="trigger-chat-input">
+          <input
+            className="input"
+            value={assistantInput}
+            onChange={(event) => setAssistantInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                void askAssistant();
+              }
+            }}
+            placeholder="Tell CaseSync what emails to watch, e.g. proof of service from opposing counsel"
+          />
+          <button className="btn-primary" type="button" onClick={() => askAssistant()} disabled={assistantLoading}>
+            <Send size={14} />
+            Ask
+          </button>
+        </div>
+      </div>
+
+      <details
+        className="advanced-trigger-form"
+        open={advancedOpen}
+        onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}
+      >
+        <summary>Advanced manual rule editor</summary>
+        <div className="layout-grid two-col trigger-editor-grid">
         <div className="card">
           <h3>{editing ? 'Edit trigger' : 'New trigger'}</h3>
           <div className="trigger-helper">
             <strong>Recommended first rule</strong>
-            <p className="meta">Use the discovery preset, create the trigger, then click Scan now. CaseSync will calculate response deadlines from Proof of Service dates and add Calendar reminders.</p>
+            <p className="meta">Use the discovery preset, create the trigger, then click Scan now. CaseSync will calculate response deadlines from Proof of Service dates and prepare Calendar reminders for review.</p>
             <button className="btn-ghost" type="button" onClick={applyDiscoveryPreset}>
               Fill recommended discovery trigger
             </button>
@@ -490,6 +684,7 @@ export default function Triggers({ accounts, onSaved }) {
           </button>
         </div>
       </div>
+      </details>
 
       <div className="card">
         <h3>Trigger list</h3>

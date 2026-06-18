@@ -41,6 +41,11 @@ export const createTrigger = async (payload) => {
   return response.data.trigger;
 };
 
+export const suggestTrigger = async (payload) => {
+  const response = await client.post('/api/trigger-assistant/suggest', payload);
+  return response.data;
+};
+
 export const updateTrigger = async (id, payload) => {
   const response = await client.put(`/api/triggers/${id}`, payload);
   return response.data.trigger;
