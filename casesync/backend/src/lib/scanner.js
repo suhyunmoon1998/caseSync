@@ -236,6 +236,9 @@ const caseFolderSearchTerms = (folder = {}) => {
 
   if (title && title !== caseId) {
     addTerm(title);
+    if (/\bbuilding\b/i.test(title) && !/\bmaterials?\b/i.test(title)) {
+      addTerm(`${title} Materials`);
+    }
     addTitleAliases(title);
     const compactTitle = title
       .replace(/\b(vs?\.?|versus)\b/gi, ' v ')
