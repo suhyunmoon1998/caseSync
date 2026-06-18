@@ -377,7 +377,7 @@ export const fetchCaseFolderEmails = async (auth, searchTerms = [], maxResults =
   const terms = [...new Set((Array.isArray(searchTerms) ? searchTerms : [])
     .map((item) => String(item || '').trim())
     .filter((item) => item.length >= 3))]
-    .slice(0, 8);
+    .slice(0, 12);
 
   if (!terms.length) {
     return [];

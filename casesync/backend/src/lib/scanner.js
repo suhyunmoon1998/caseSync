@@ -31,10 +31,12 @@ import {
 const defaultCalendarId = process.env.SCAN_CALENDAR_ID || 'primary';
 const scanMaxEmails = Number(process.env.SCAN_MAX_EMAILS || 1000);
 const caseFolderScanMaxEmails = Number(process.env.CASE_FOLDER_SCAN_MAX_EMAILS || 100);
+const scanStaleMs = Number(process.env.SCAN_STALE_MS || 15 * 60 * 1000);
 const ALLOW_AUTOMATIC_CALENDAR_WRITES = process.env.ALLOW_AUTOMATIC_CALENDAR_WRITES === 'true';
 
 const runningState = {
   running: false,
+  startedAt: 0,
 };
 
 export const getNextScheduledRun = () => {
@@ -169,30 +171,55 @@ const normalizeTextMatch = (value = '') => String(value || '')
 
 const caseFolderSearchTerms = (folder = {}) => {
   const terms = [];
+  const addTerm = (value = '') => {
+    const clean = String(value || '')
+      .replace(/\bet\s+al\.?\b/gi, '')
+      .replace(/\s+/g, ' ')
+      .replace(/\s+,/g, ',')
+      .trim()
+      .replace(/[.,;:]+$/g, '');
+
+    if (clean.length >= 3 && !terms.includes(clean)) {
+      terms.push(clean);
+    }
+  };
   const caseId = safeCaseId(folder.caseId);
   const title = String(folder.caseTitle || '').trim();
 
   if (caseId && !caseId.startsWith('CASE-')) {
-    terms.push(caseId);
+    addTerm(caseId);
+    const spacedCaseId = caseId.replace(/^([A-Z0-9]*?[A-Z]{2,})(\d{3,})$/i, '$1 $2');
+    const dashedCaseId = caseId.replace(/^([A-Z0-9]*?[A-Z]{2,})(\d{3,})$/i, '$1-$2');
+    addTerm(spacedCaseId);
+    addTerm(dashedCaseId);
   }
 
   if (title && title !== caseId) {
-    terms.push(title);
+    addTerm(title);
     const compactTitle = title
       .replace(/\b(vs?\.?|versus)\b/gi, ' v ')
       .replace(/\b(incorporated)\b/gi, 'inc')
+      .replace(/\bet\s+al\.?\b/gi, '')
       .replace(/\s+/g, ' ')
       .trim();
-    terms.push(compactTitle);
-    for (const part of title.split(/\b(?:v\.?|vs\.?|versus)\b/i)) {
+    addTerm(compactTitle);
+
+    for (const part of title.split(/\b(?:v\.?|vs\.?|versus|,)\b/i)) {
       const clean = part.trim().replace(/[.,;:]+$/g, '');
       if (clean.length >= 5) {
-        terms.push(clean);
+        addTerm(clean);
+        const words = clean.split(/\s+/).filter(Boolean);
+        if (words.length >= 2) {
+          addTerm(words.slice(0, 2).join(' '));
+        }
+        if (words.length >= 3) {
+          addTerm(words.slice(0, 3).join(' '));
+        }
       }
     }
   }
 
-  return [...new Set(terms.map((item) => String(item || '').trim()).filter((item) => item.length >= 3))].slice(0, 8);
+  return [...new Set(terms.map((item) => String(item || '').trim()).filter((item) => item.length >= 3))].slice(0, 12);
 };
 
 const emailMatchesCaseFolder = (email = {}, folder = {}) => {
@@ -476,13 +503,19 @@ const readScanLimit = (value, fallback, max) => {
 
 export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
   if (runningState.running) {
-    return {
-      skipped: true,
-      reason: 'Scan already in progress',
-    };
+    const age = runningState.startedAt ? Date.now() - runningState.startedAt : 0;
+    if (age < scanStaleMs) {
+      return {
+        skipped: true,
+        reason: 'Scan already in progress',
+      };
+    }
+
+    console.warn(`Resetting stale scan lock after ${Math.round(age / 1000)} seconds`);
   }
 
   runningState.running = true;
+  runningState.startedAt = Date.now();
   const triggerEmailLimit = readScanLimit(options.maxEmails, scanMaxEmails, scanMaxEmails);
   const caseFolderEmailLimit = readScanLimit(options.caseFolderMaxEmails, caseFolderScanMaxEmails, caseFolderScanMaxEmails);
   await setScanState({
@@ -863,6 +896,7 @@ export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
     throw error;
   } finally {
     runningState.running = false;
+    runningState.startedAt = 0;
   }
 };
 
