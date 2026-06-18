@@ -31,6 +31,7 @@ import {
 const defaultCalendarId = process.env.SCAN_CALENDAR_ID || 'primary';
 const scanMaxEmails = Number(process.env.SCAN_MAX_EMAILS || 1000);
 const caseFolderScanMaxEmails = Number(process.env.CASE_FOLDER_SCAN_MAX_EMAILS || 100);
+const ALLOW_AUTOMATIC_CALENDAR_WRITES = process.env.ALLOW_AUTOMATIC_CALENDAR_WRITES === 'true';
 
 const runningState = {
   running: false,
@@ -296,10 +297,15 @@ const buildResponsePackage = ({
 };
 
 const shouldWriteCalendarForCase = (caseRecord = {}) => (
-  caseRecord.calendarAutoEnabled !== false && caseRecord.reviewBeforeCalendarUpdate !== true
+  ALLOW_AUTOMATIC_CALENDAR_WRITES
+  && caseRecord.calendarAutoEnabled === true
+  && caseRecord.reviewBeforeCalendarUpdate !== true
 );
 
 const calendarHoldReason = (caseRecord = {}) => {
+  if (!ALLOW_AUTOMATIC_CALENDAR_WRITES) {
+    return 'Automatic Google Calendar updates are paused. CaseSync saved this for review instead.';
+  }
   if (caseRecord.calendarAutoEnabled === false) {
     return 'Calendar update held because auto calendar updates are off.';
   }

@@ -102,8 +102,8 @@ const normalizeCaseRow = (row) => ({
   proofServiceMethod: row.proof_service_method || '',
   responseDeadlineDate: row.response_deadline_date || '',
   discoverySets: row.discovery_sets || [],
-  calendarAutoEnabled: row.calendar_auto_enabled !== false,
-  reviewBeforeCalendarUpdate: Boolean(row.review_before_calendar_update),
+  calendarAutoEnabled: Boolean(row.calendar_auto_enabled),
+  reviewBeforeCalendarUpdate: row.review_before_calendar_update !== false,
   calendarUpdateHistory: row.calendar_update_history || [],
 });
 
@@ -244,15 +244,18 @@ const initPostgresDb = async () => {
       proof_service_method text,
       response_deadline_date text,
       discovery_sets text[] not null default '{}',
-      calendar_auto_enabled boolean not null default true,
-      review_before_calendar_update boolean not null default false,
+      calendar_auto_enabled boolean not null default false,
+      review_before_calendar_update boolean not null default true,
       calendar_update_history jsonb not null default '[]'::jsonb,
       updated_at timestamptz not null default now()
     )
   `);
   await pg.query('alter table cases add column if not exists case_color text');
-  await pg.query('alter table cases add column if not exists calendar_auto_enabled boolean not null default true');
-  await pg.query('alter table cases add column if not exists review_before_calendar_update boolean not null default false');
+  await pg.query('alter table cases add column if not exists calendar_auto_enabled boolean not null default false');
+  await pg.query('alter table cases add column if not exists review_before_calendar_update boolean not null default true');
+  await pg.query('alter table cases alter column calendar_auto_enabled set default false');
+  await pg.query('alter table cases alter column review_before_calendar_update set default true');
+  await pg.query('update cases set calendar_auto_enabled = false, review_before_calendar_update = true');
   await pg.query("alter table cases add column if not exists calendar_update_history jsonb not null default '[]'::jsonb");
   await pg.query(`
     create table if not exists case_emails (
@@ -762,8 +765,8 @@ const mergeCaseRecords = (existing = {}, incoming = {}) => {
     proofServiceDate: firstNonEmpty(incoming.proofServiceDate, existing.proofServiceDate, ''),
     proofServiceMethod: firstNonEmpty(incoming.proofServiceMethod, existing.proofServiceMethod, ''),
     responseDeadlineDate: firstNonEmpty(incoming.responseDeadlineDate, existing.responseDeadlineDate, ''),
-    calendarAutoEnabled: incoming.calendarAutoEnabled ?? existing.calendarAutoEnabled ?? true,
-    reviewBeforeCalendarUpdate: incoming.reviewBeforeCalendarUpdate ?? existing.reviewBeforeCalendarUpdate ?? false,
+    calendarAutoEnabled: incoming.calendarAutoEnabled ?? existing.calendarAutoEnabled ?? false,
+    reviewBeforeCalendarUpdate: incoming.reviewBeforeCalendarUpdate ?? existing.reviewBeforeCalendarUpdate ?? true,
     calendarUpdateHistory: [
       ...(Array.isArray(incoming.calendarUpdateHistory) ? incoming.calendarUpdateHistory : []),
       ...(Array.isArray(existing.calendarUpdateHistory) ? existing.calendarUpdateHistory : []),
@@ -801,8 +804,8 @@ export const upsertCaseRecord = async (record) => {
     proofServiceMethod: record.proofServiceMethod || '',
     responseDeadlineDate: record.responseDeadlineDate || '',
     discoverySets: Array.isArray(record.discoverySets) ? record.discoverySets : [],
-    calendarAutoEnabled: record.calendarAutoEnabled !== false,
-    reviewBeforeCalendarUpdate: Boolean(record.reviewBeforeCalendarUpdate),
+    calendarAutoEnabled: record.calendarAutoEnabled === true,
+    reviewBeforeCalendarUpdate: record.reviewBeforeCalendarUpdate !== false,
     calendarUpdateHistory: [
       {
         at: record.lastUpdated || new Date().toISOString(),
