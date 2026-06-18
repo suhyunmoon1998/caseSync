@@ -7575,3 +7575,222 @@ td {
     justify-content: flex-start !important;
   }
 }
+
+/* Final compact font clamp: prevent oversized billboard typography */
+html,
+body,
+#root,
+.app-shell {
+  font-size: 13px !important;
+}
+
+.clean-header strong,
+.clean-brand strong {
+  font-size: 14px !important;
+}
+
+.clean-header span,
+.clean-brand span,
+.account-pill {
+  font-size: 11px !important;
+}
+
+.canvas-stage-head h1,
+.main h1,
+.landing-headline,
+.hero-title,
+.display-title,
+[class*="headline"],
+[class*="Headline"] {
+  font-size: clamp(26px, 2.8vw, 40px) !important;
+  line-height: 1.06 !important;
+  letter-spacing: -0.048em !important;
+  max-width: 780px !important;
+}
+
+.commercial-onboarding h3,
+.canvas-stage-head h2,
+.main h2,
+.topbar h2,
+.section-title,
+[class*="title"],
+[class*="Title"] {
+  font-size: clamp(20px, 2vw, 30px) !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.04em !important;
+}
+
+.main h3,
+.card h3,
+.trigger-chat-head h3,
+.case-detail-panel-head h3,
+[class*="heading"],
+[class*="Heading"] {
+  font-size: clamp(16px, 1.35vw, 21px) !important;
+  line-height: 1.16 !important;
+  letter-spacing: -0.032em !important;
+}
+
+.main h4,
+.card h4,
+.case-card h4,
+.trigger-card h4 {
+  font-size: 14px !important;
+  line-height: 1.2 !important;
+}
+
+.main p,
+.card p,
+.hero-copy,
+.connect-copy,
+.canvas-stage-head p,
+.commercial-onboarding p {
+  font-size: 13px !important;
+  line-height: 1.42 !important;
+}
+
+.meta,
+.case-summary-item small,
+.case-detail-deadline-row small,
+.case-setting-toggle small,
+.case-email-preview,
+.timeline-meta,
+.notif-toast-body,
+.canvas-nav-item small,
+.brand-sub {
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+}
+
+.eyebrow,
+.kicker,
+.overline {
+  font-size: 10px !important;
+  letter-spacing: 0.12em !important;
+}
+
+.btn-primary,
+.btn-ghost,
+.btn-danger,
+.btn-success,
+.btn-icon,
+input,
+textarea,
+select,
+.input,
+.form-control,
+.chat-bubble,
+.nav-item,
+.canvas-nav-item,
+.notification-bell {
+  font-size: 12px !important;
+}
+
+.btn-primary,
+.btn-ghost,
+.btn-danger,
+.btn-success {
+  min-height: 32px !important;
+  padding: 6px 11px !important;
+}
+
+.card,
+.commercial-onboarding,
+.canvas-stage-head,
+.trigger-chat-window,
+.trigger-draft-panel,
+.stat,
+.case-card,
+.trigger-card,
+.timeline-item,
+.case-email-item,
+.case-detail-deadline-row {
+  padding: clamp(12px, 1.15vw, 16px) !important;
+}
+
+.canvas-stage-head,
+.commercial-onboarding {
+  gap: 12px !important;
+}
+
+.onboarding-steps span,
+.badge,
+.tag,
+.hint-chip,
+.account-chip,
+.notification-list-status,
+.ai-cost-pill {
+  font-size: 10px !important;
+  padding: 5px 8px !important;
+}
+
+.stat .n,
+.stat .stat-number {
+  font-size: clamp(18px, 1.7vw, 24px) !important;
+  line-height: 1.05 !important;
+}
+
+.case-card h3,
+.case-card h4,
+.trigger-card h3,
+.trigger-card h4,
+.email-card h3,
+.email-card h4,
+.case-email-subject {
+  font-size: clamp(14px, 1.1vw, 17px) !important;
+  line-height: 1.16 !important;
+}
+
+.case-detail-deadline-large strong {
+  font-size: clamp(24px, 2.6vw, 36px) !important;
+}
+
+th,
+td {
+  font-size: 10px !important;
+  padding: 7px 6px !important;
+}
+
+@media (min-width: 1280px) {
+  .canvas-stage-head h1,
+  .main h1,
+  .landing-headline,
+  .hero-title,
+  .display-title,
+  [class*="headline"],
+  [class*="Headline"] {
+    font-size: 40px !important;
+  }
+
+  .commercial-onboarding h3,
+  .canvas-stage-head h2,
+  .main h2,
+  .topbar h2,
+  .section-title,
+  [class*="title"],
+  [class*="Title"] {
+    font-size: 30px !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .canvas-stage-head h1,
+  .main h1,
+  .landing-headline,
+  .hero-title,
+  .display-title,
+  [class*="headline"],
+  [class*="Headline"] {
+    font-size: 26px !important;
+  }
+
+  .commercial-onboarding h3,
+  .canvas-stage-head h2,
+  .main h2,
+  .topbar h2,
+  .section-title,
+  [class*="title"],
+  [class*="Title"] {
+    font-size: 21px !important;
+  }
+}
