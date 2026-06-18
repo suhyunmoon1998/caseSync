@@ -83,6 +83,9 @@ app.get('/api/health', (_req, res) => {
     calendarSafety: {
       automaticWritesEnabled: process.env.ALLOW_AUTOMATIC_CALENDAR_WRITES === 'true',
     },
+    scan: {
+      boundedManualRuns: true,
+    },
   });
 });
 
