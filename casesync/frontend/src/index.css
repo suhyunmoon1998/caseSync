@@ -6417,3 +6417,193 @@ body,
     justify-content: flex-start;
   }
 }
+
+/* Compact typography pass: make CaseSync feel like a work app, not a billboard */
+:root {
+  --app-font-xs: 11px;
+  --app-font-sm: 12px;
+  --app-font-md: 13px;
+  --app-font-lg: 15px;
+  --app-font-xl: 18px;
+  --app-font-2xl: 24px;
+  --app-font-3xl: 32px;
+}
+
+body {
+  font-size: var(--app-font-md);
+}
+
+.main h1,
+.canvas-stage-head h1,
+.hero h1,
+.hero-card h1,
+.page-hero h1,
+.marketing-hero h1,
+.workspace-hero h1,
+.case-hero h1,
+.hero-title,
+.display-title,
+.landing-headline {
+  font-size: clamp(28px, 3.4vw, 46px) !important;
+  line-height: 1.04 !important;
+  letter-spacing: -0.055em !important;
+}
+
+.main h2,
+.topbar h2,
+.hero h2,
+.hero-card h2,
+.page-hero h2,
+.marketing-hero h2,
+.workspace-hero h2,
+.case-hero h2,
+.section-title {
+  font-size: clamp(22px, 2.4vw, 34px) !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.045em !important;
+}
+
+.main h3,
+.card h3,
+.commercial-onboarding h3,
+.trigger-chat-head h3 {
+  font-size: clamp(17px, 1.55vw, 24px) !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.038em !important;
+}
+
+.main h4,
+.card h4,
+.case-card h4,
+.trigger-card h4 {
+  font-size: var(--app-font-lg) !important;
+  line-height: 1.2 !important;
+  letter-spacing: -0.025em !important;
+}
+
+.main p,
+.hero p,
+.hero-card p,
+.page-hero p,
+.marketing-hero p,
+.workspace-hero p,
+.case-hero p,
+.hero-copy,
+.connect-copy {
+  font-size: var(--app-font-lg) !important;
+  line-height: 1.45 !important;
+}
+
+.meta,
+.brand-sub,
+.case-email-preview,
+.timeline-meta,
+.case-summary-item small,
+.case-detail-deadline-row small,
+.case-setting-toggle small,
+.notif-toast-body {
+  font-size: var(--app-font-sm) !important;
+  line-height: 1.4 !important;
+}
+
+.eyebrow,
+.kicker,
+.overline {
+  font-size: var(--app-font-xs) !important;
+  letter-spacing: 0.13em !important;
+}
+
+.brand {
+  font-size: var(--app-font-lg) !important;
+}
+
+.nav-item,
+.notification-bell,
+.btn-primary,
+.btn-ghost,
+.btn-danger,
+.btn-success,
+input,
+textarea,
+select,
+.input,
+.form-control,
+.chat-bubble {
+  font-size: var(--app-font-md) !important;
+}
+
+.btn-primary,
+.btn-ghost,
+.btn-danger,
+.btn-success {
+  min-height: 34px;
+  padding: 7px 12px;
+}
+
+.card {
+  padding: clamp(14px, 1.35vw, 18px);
+}
+
+.canvas-stage-head,
+.commercial-onboarding {
+  padding: clamp(16px, 2vw, 24px) !important;
+}
+
+.canvas-stage-head h1 {
+  margin-bottom: 8px;
+}
+
+.commercial-onboarding h3 {
+  max-width: 720px;
+}
+
+.stat .n,
+.stat .stat-number {
+  font-size: clamp(20px, 2vw, 28px) !important;
+}
+
+.case-card h3,
+.case-card h4,
+.trigger-card h3,
+.trigger-card h4,
+.email-card h3,
+.email-card h4 {
+  font-size: clamp(15px, 1.25vw, 19px) !important;
+}
+
+.case-detail-deadline-large strong {
+  font-size: clamp(26px, 3.2vw, 44px) !important;
+  line-height: 1.02 !important;
+}
+
+.onboarding-steps span,
+.badge,
+.tag,
+.hint-chip,
+.account-chip {
+  font-size: var(--app-font-xs) !important;
+}
+
+th,
+td {
+  font-size: var(--app-font-xs) !important;
+}
+
+@media (max-width: 640px) {
+  .main h1,
+  .canvas-stage-head h1,
+  .landing-headline {
+    font-size: 30px !important;
+  }
+
+  .main h2,
+  .topbar h2 {
+    font-size: 24px !important;
+  }
+
+  .main p,
+  .hero-copy,
+  .connect-copy {
+    font-size: 14px !important;
+  }
+}
