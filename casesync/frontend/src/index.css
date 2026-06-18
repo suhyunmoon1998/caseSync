@@ -7073,3 +7073,384 @@ body > .account-header,
     margin: 8px auto 12px !important;
   }
 }
+
+/* Final reset: blue/white futuristic theme + unclipped top bar */
+:root {
+  --bg: #f5f9ff;
+  --bg-elevated: rgba(255, 255, 255, 0.92);
+  --bg-solid: #ffffff;
+  --bg-muted: #eaf2ff;
+  --bg-control: #ffffff;
+  --border: rgba(37, 99, 235, 0.18);
+  --border-soft: rgba(37, 99, 235, 0.12);
+  --text-1: #07111f;
+  --text-2: #46576f;
+  --text-3: #718199;
+  --accent: #2563eb;
+  --accent-soft: rgba(37, 99, 235, 0.12);
+  --success: #2563eb;
+  --success-soft: rgba(37, 99, 235, 0.10);
+  --warning: #60a5fa;
+  --warning-soft: rgba(96, 165, 250, 0.13);
+  --danger: #2563eb;
+  --danger-soft: rgba(37, 99, 235, 0.10);
+  --danger-text: #1d4ed8;
+  --shadow: 0 24px 70px rgba(37, 99, 235, 0.14);
+  --shadow-soft: 0 12px 32px rgba(37, 99, 235, 0.10);
+}
+
+html,
+body,
+#root,
+.app-shell {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+body {
+  color: var(--text-1) !important;
+  background:
+    radial-gradient(circle at 78% 0%, rgba(37, 99, 235, 0.20), transparent 32%),
+    radial-gradient(circle at 8% 12%, rgba(147, 197, 253, 0.28), transparent 28%),
+    linear-gradient(135deg, #ffffff 0%, #f3f8ff 42%, #eaf2ff 100%) !important;
+}
+
+body::before {
+  background-image:
+    linear-gradient(rgba(37, 99, 235, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(37, 99, 235, 0.055) 1px, transparent 1px) !important;
+  background-size: 42px 42px !important;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), transparent 76%) !important;
+}
+
+.app-shell {
+  display: block !important;
+  min-height: 100vh !important;
+  padding: clamp(12px, 1.4vw, 22px) !important;
+  background: transparent !important;
+  box-sizing: border-box !important;
+}
+
+.app-header {
+  position: static !important;
+  inset: auto !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 0 clamp(14px, 1.6vw, 24px) 0 !important;
+  transform: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+  flex-wrap: wrap !important;
+  padding: 12px 14px !important;
+  overflow: visible !important;
+  background: rgba(255, 255, 255, 0.86) !important;
+  border: 1px solid rgba(37, 99, 235, 0.14) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 18px 46px rgba(37, 99, 235, 0.14) !important;
+  backdrop-filter: blur(22px) saturate(1.35) !important;
+  box-sizing: border-box !important;
+}
+
+.app-header > * {
+  min-width: 0 !important;
+}
+
+.app-header .brand-panel,
+.app-header [class*="brand"],
+.app-header .logo-image,
+.app-header img {
+  flex: 0 0 auto !important;
+  overflow: visible !important;
+}
+
+.app-header .hero-actions,
+.app-header [class*="actions"] {
+  margin-left: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+}
+
+.canvas-workspace {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: calc(100vh - 110px) !important;
+  display: grid !important;
+  grid-template-columns: minmax(220px, 268px) minmax(0, 1fr) !important;
+  gap: clamp(14px, 1.6vw, 24px) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+.canvas-sidebar,
+.sidebar {
+  background: rgba(255, 255, 255, 0.90) !important;
+  color: var(--text-1) !important;
+  border: 1px solid rgba(37, 99, 235, 0.14) !important;
+  box-shadow: 0 22px 58px rgba(37, 99, 235, 0.13) !important;
+  backdrop-filter: blur(24px) saturate(1.25) !important;
+}
+
+.canvas-stage,
+.main {
+  color: var(--text-1) !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+}
+
+.commercial-onboarding,
+.canvas-stage-head,
+.card,
+.connect-card,
+.notification-panel,
+.toast,
+.notif-toast,
+.quick-add-popover,
+.trigger-chat-window,
+.trigger-draft-panel,
+.trigger-helper,
+.stat,
+.case-card,
+.trigger-card,
+.timeline-item,
+.email-card,
+.deadline-card,
+.case-email-item,
+.case-detail-deadline-row,
+.case-summary-item,
+.case-setting-toggle,
+.empty-state,
+.account-panel {
+  background: rgba(255, 255, 255, 0.91) !important;
+  color: var(--text-1) !important;
+  border: 1px solid rgba(37, 99, 235, 0.14) !important;
+  box-shadow: 0 18px 48px rgba(37, 99, 235, 0.12) !important;
+  backdrop-filter: blur(22px) saturate(1.25) !important;
+}
+
+.commercial-onboarding,
+.canvas-stage-head {
+  background:
+    radial-gradient(circle at 92% 8%, rgba(37, 99, 235, 0.16), transparent 30%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(239, 246, 255, 0.94)) !important;
+}
+
+.main h1,
+.main h2,
+.main h3,
+.main h4,
+.card h1,
+.card h2,
+.card h3,
+.card h4,
+.canvas-stage-head h1,
+.commercial-onboarding h3,
+.connect-card h1,
+.case-card h3,
+.case-card h4,
+.trigger-card h3,
+.trigger-card h4,
+.case-email-subject,
+.case-detail-deadline-large strong,
+.canvas-sidebar-title,
+.brand,
+.canvas-nav-item span,
+.canvas-alerts-head,
+.sidebar h4,
+.notification-bell,
+.nav-item {
+  color: var(--text-1) !important;
+}
+
+.hero-copy,
+.main p,
+.card p,
+.meta,
+.case-summary-item small,
+.case-detail-deadline-row small,
+.case-setting-toggle small,
+.case-email-preview,
+.timeline-meta,
+.notif-toast-body,
+.connect-copy,
+.canvas-sidebar-title span,
+.canvas-nav-item small,
+.canvas-alert-empty,
+.connected-pill,
+.brand-sub,
+.sidebar .meta {
+  color: var(--text-2) !important;
+}
+
+.eyebrow,
+.kicker,
+.overline,
+.canvas-stage-head .eyebrow,
+.commercial-onboarding .eyebrow,
+a,
+.mini-link {
+  color: var(--accent) !important;
+}
+
+.btn-primary,
+.btn-success,
+button.btn-primary,
+button.btn-success,
+.canvas-nav-item.is-active,
+.nav-item.is-active {
+  background: linear-gradient(135deg, #2563eb, #60a5fa) !important;
+  border-color: rgba(37, 99, 235, 0.42) !important;
+  color: #ffffff !important;
+  box-shadow: 0 16px 36px rgba(37, 99, 235, 0.24) !important;
+}
+
+.btn-primary svg,
+.btn-success svg,
+.canvas-nav-item.is-active small,
+.nav-item.is-active svg {
+  color: #ffffff !important;
+}
+
+.btn-ghost,
+.btn-danger,
+.btn-icon,
+button.btn-ghost,
+button.btn-danger,
+button.btn-icon,
+.canvas-nav-item,
+.nav-item,
+.notification-bell,
+.canvas-alert-empty,
+.connected-pill,
+.account-bar.card {
+  background: rgba(255, 255, 255, 0.82) !important;
+  border-color: rgba(37, 99, 235, 0.14) !important;
+  color: var(--text-1) !important;
+}
+
+.btn-ghost:hover,
+.btn-danger:hover,
+.btn-icon:hover,
+.canvas-nav-item:hover,
+.nav-item:hover,
+.notification-bell:hover {
+  background: rgba(37, 99, 235, 0.10) !important;
+  border-color: rgba(37, 99, 235, 0.34) !important;
+}
+
+input,
+textarea,
+select,
+.input,
+.form-control {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border: 1px solid rgba(37, 99, 235, 0.18) !important;
+  color: var(--text-1) !important;
+}
+
+.badge,
+.tag,
+.hint-chip,
+.account-chip,
+.notification-list-status,
+.ai-cost-pill,
+.onboarding-steps span {
+  background: rgba(37, 99, 235, 0.10) !important;
+  color: #1d4ed8 !important;
+  border: 1px solid rgba(37, 99, 235, 0.20) !important;
+}
+
+.stat-icon,
+.stat-icon-danger,
+.stat-icon-success,
+.stat-icon-warning,
+.pulse-dot,
+.notification-badge,
+.canvas-alert-dot {
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+.chat-bubble.is-user {
+  background: linear-gradient(135deg, #2563eb, #60a5fa) !important;
+  color: #ffffff !important;
+}
+
+.chat-bubble.is-assistant,
+.calendar-day,
+.calendar-cell,
+.calendar-tile {
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: var(--text-1) !important;
+  border-color: rgba(37, 99, 235, 0.14) !important;
+}
+
+.chat-bubble svg,
+.trigger-draft-title svg,
+.case-detail-panel-head svg,
+.case-email-top svg,
+.notification-bell svg,
+.nav-item svg {
+  color: var(--accent) !important;
+}
+
+.timeline-item [style*="background"],
+.badge[style] {
+  background: linear-gradient(135deg, #2563eb, #60a5fa) !important;
+  color: #ffffff !important;
+}
+
+.notif-toast,
+.case-email-item.needs-review,
+.canvas-alert-item.is-new,
+.canvas-alert-item.is-updated {
+  border-left-color: #2563eb !important;
+}
+
+th,
+td {
+  color: var(--text-1) !important;
+  border-color: rgba(37, 99, 235, 0.12) !important;
+}
+
+.brand-mark,
+.logo-image,
+.connect-icon {
+  background: #ffffff !important;
+  border: 1px solid rgba(37, 99, 235, 0.22) !important;
+}
+
+::selection {
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+@media (max-width: 980px) {
+  .app-shell {
+    padding: 10px !important;
+  }
+
+  .canvas-workspace {
+    display: block !important;
+  }
+
+  .canvas-sidebar {
+    max-width: 100% !important;
+    height: auto !important;
+    margin-bottom: 14px !important;
+  }
+}
