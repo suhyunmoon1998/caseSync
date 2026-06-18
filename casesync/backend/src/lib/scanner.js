@@ -1479,6 +1479,7 @@ export const repairCaseFromStoredEmails = async (caseId) => {
     caseTitle: target.caseTitle || normalizedCaseId,
     summary: raw.parsedSummary || target.summary || 'Repaired from stored discovery email.',
     deadlines,
+    replaceDeadlines: true,
     caseConfidence: Math.max(Number(target.caseConfidence || 0), Number(discoveryEmail.caseConfidence || 0), 86),
     isEstimated: false,
     proofServiceDate: raw.proofServiceDate,

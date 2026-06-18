@@ -866,7 +866,7 @@ const mergeCaseRecords = (existing = {}, incoming = {}) => {
       : firstNonEmpty(incoming.description, existing.description, ''),
     caseConfidence: incoming.caseConfidence ?? existing.caseConfidence ?? null,
     isEstimated: incoming.isEstimated ?? existing.isEstimated ?? false,
-    deadlines: mergeListByJson(existing.deadlines, incoming.deadlines),
+    deadlines: incoming.replaceDeadlines === true ? incoming.deadlines : mergeListByJson(existing.deadlines, incoming.deadlines),
     sourceCalendarId: incoming.sourceCalendarId === 'CaseSync'
       ? firstNonEmpty(existing.sourceCalendarId, incoming.sourceCalendarId, 'CaseSync')
       : firstNonEmpty(incoming.sourceCalendarId, existing.sourceCalendarId, 'primary'),
@@ -943,6 +943,7 @@ export const upsertCaseRecord = async (record) => {
     caseConfidence: Number.isFinite(Number(record.caseConfidence)) ? Number(record.caseConfidence) : null,
     isEstimated: Boolean(record.isEstimated ?? record.estimated),
     deadlines: Array.isArray(record.deadlines) ? record.deadlines : [],
+    replaceDeadlines: record.replaceDeadlines === true,
     sourceCalendarId: record.sourceCalendarId || record.calendarId || 'primary',
     sourceAccount: record.sourceAccount || record.sourceEmail || '',
     sourceEventSummary: record.sourceEventSummary || record.summary || '',
@@ -1018,16 +1019,19 @@ export const upsertCaseRecord = async (record) => {
         last_updated = excluded.last_updated,
         case_confidence = coalesce(excluded.case_confidence, cases.case_confidence),
         is_estimated = excluded.is_estimated,
-        deadlines = (
-          select coalesce(jsonb_agg(merged.value), '[]'::jsonb)
-          from (
-            select distinct value
-            from jsonb_array_elements(coalesce(cases.deadlines, '[]'::jsonb)) as existing(value)
-            union
-            select distinct value
-            from jsonb_array_elements(coalesce(excluded.deadlines, '[]'::jsonb)) as incoming(value)
-          ) as merged
-        ),
+        deadlines = case
+          when $27 then excluded.deadlines
+          else (
+            select coalesce(jsonb_agg(merged.value), '[]'::jsonb)
+            from (
+              select distinct value
+              from jsonb_array_elements(coalesce(cases.deadlines, '[]'::jsonb)) as existing(value)
+              union
+              select distinct value
+              from jsonb_array_elements(coalesce(excluded.deadlines, '[]'::jsonb)) as incoming(value)
+            ) as merged
+          )
+        end,
         source_calendar_id = case
           when excluded.source_calendar_id = 'CaseSync' then coalesce(nullif(cases.source_calendar_id, ''), excluded.source_calendar_id)
           else coalesce(nullif(excluded.source_calendar_id, ''), cases.source_calendar_id)
@@ -1085,6 +1089,7 @@ export const upsertCaseRecord = async (record) => {
         payload.calendarAutoEnabled,
         payload.reviewBeforeCalendarUpdate,
         JSON.stringify(payload.calendarUpdateHistory),
+        payload.replaceDeadlines,
       ],
     );
     if (duplicateMerge.duplicateCaseIds.length) {
