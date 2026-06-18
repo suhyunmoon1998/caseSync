@@ -876,16 +876,18 @@ const mergeCaseRecords = (existing = {}, incoming = {}) => {
       : firstNonEmpty(incoming.sourceEventSummary, existing.sourceEventSummary, ''),
     start: incoming.start || existing.start || null,
     end: incoming.end || existing.end || null,
-    proofServiceDate: firstNonEmpty(incoming.proofServiceDate, existing.proofServiceDate, ''),
-    proofServiceMethod: firstNonEmpty(incoming.proofServiceMethod, existing.proofServiceMethod, ''),
-    responseDeadlineDate: firstNonEmpty(incoming.responseDeadlineDate, existing.responseDeadlineDate, ''),
+    proofServiceDate: incoming.replaceDeadlines === true ? (incoming.proofServiceDate || '') : firstNonEmpty(incoming.proofServiceDate, existing.proofServiceDate, ''),
+    proofServiceMethod: incoming.replaceDeadlines === true ? (incoming.proofServiceMethod || '') : firstNonEmpty(incoming.proofServiceMethod, existing.proofServiceMethod, ''),
+    responseDeadlineDate: incoming.replaceDeadlines === true ? (incoming.responseDeadlineDate || '') : firstNonEmpty(incoming.responseDeadlineDate, existing.responseDeadlineDate, ''),
     calendarAutoEnabled: incoming.calendarAutoEnabled ?? existing.calendarAutoEnabled ?? false,
     reviewBeforeCalendarUpdate: incoming.reviewBeforeCalendarUpdate ?? existing.reviewBeforeCalendarUpdate ?? true,
     calendarUpdateHistory: [
       ...(Array.isArray(incoming.calendarUpdateHistory) ? incoming.calendarUpdateHistory : []),
       ...(Array.isArray(existing.calendarUpdateHistory) ? existing.calendarUpdateHistory : []),
     ].slice(0, 20),
-    discoverySets: [...new Set([
+    discoverySets: incoming.replaceDeadlines === true ? [...new Set([
+      ...(Array.isArray(incoming.discoverySets) ? incoming.discoverySets : []),
+    ])] : [...new Set([
       ...(Array.isArray(existing.discoverySets) ? existing.discoverySets : []),
       ...(Array.isArray(incoming.discoverySets) ? incoming.discoverySets : []),
     ])],
@@ -1043,13 +1045,16 @@ export const upsertCaseRecord = async (record) => {
         end,
         start_payload = coalesce(excluded.start_payload, cases.start_payload),
         end_payload = coalesce(excluded.end_payload, cases.end_payload),
-        proof_service_date = coalesce(nullif(excluded.proof_service_date, ''), cases.proof_service_date),
-        proof_service_method = coalesce(nullif(excluded.proof_service_method, ''), cases.proof_service_method),
-        response_deadline_date = coalesce(nullif(excluded.response_deadline_date, ''), cases.response_deadline_date),
-        discovery_sets = (
-          select coalesce(array_agg(distinct item), '{}'::text[])
-          from unnest(coalesce(cases.discovery_sets, '{}'::text[]) || coalesce(excluded.discovery_sets, '{}'::text[])) as merged_sets(item)
-        ),
+        proof_service_date = case when $27 then excluded.proof_service_date else coalesce(nullif(excluded.proof_service_date, ''), cases.proof_service_date) end,
+        proof_service_method = case when $27 then excluded.proof_service_method else coalesce(nullif(excluded.proof_service_method, ''), cases.proof_service_method) end,
+        response_deadline_date = case when $27 then excluded.response_deadline_date else coalesce(nullif(excluded.response_deadline_date, ''), cases.response_deadline_date) end,
+        discovery_sets = case
+          when $27 then coalesce(excluded.discovery_sets, '{}'::text[])
+          else (
+            select coalesce(array_agg(distinct item), '{}'::text[])
+            from unnest(coalesce(cases.discovery_sets, '{}'::text[]) || coalesce(excluded.discovery_sets, '{}'::text[])) as merged_sets(item)
+          )
+        end,
         calendar_auto_enabled = cases.calendar_auto_enabled,
         review_before_calendar_update = cases.review_before_calendar_update,
         calendar_update_history = (

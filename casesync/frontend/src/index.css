@@ -8473,7 +8473,7 @@ td {
 
 /* Case detail readability: give calendar controls enough room and raise small text. */
 .app-shell-clean .case-detail-grid {
-  grid-template-columns: minmax(420px, 0.82fr) minmax(560px, 1.55fr) !important;
+  grid-template-columns: minmax(380px, 0.82fr) minmax(0, 1.55fr) !important;
   gap: 20px !important;
   align-items: start !important;
 }
@@ -8481,6 +8481,11 @@ td {
 .app-shell-clean .case-detail-calendar-panel,
 .app-shell-clean .case-detail-email-panel {
   min-width: 0 !important;
+}
+
+.app-shell-clean .case-detail-calendar-panel {
+  overflow: visible !important;
+  padding-bottom: 24px !important;
 }
 
 .app-shell-clean .case-detail-panel-head h3 {
@@ -8527,6 +8532,9 @@ td {
   padding: 18px !important;
   gap: 14px !important;
   overflow: visible !important;
+  margin-bottom: 10px !important;
+  position: relative !important;
+  z-index: 2 !important;
 }
 
 .app-shell-clean .case-calendar-approval {
@@ -8550,6 +8558,15 @@ td {
   padding: 9px 12px !important;
   font-size: 12px !important;
   white-space: normal !important;
+}
+
+.app-shell-clean .case-setting-toggle {
+  min-height: 54px !important;
+  overflow: visible !important;
+}
+
+.app-shell-clean .case-setting-toggle span {
+  min-width: 0 !important;
 }
 
 .app-shell-clean .case-detail-email-list .case-email-item {
@@ -8923,6 +8940,31 @@ td {
 
 @media (max-width: 720px) {
   .app-shell-clean .cases-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Case detail calendar controls: prevent approval/toggle controls from clipping. */
+.app-shell-clean .case-calendar-controls,
+.app-shell-clean .case-calendar-approval,
+.app-shell-clean .case-setting-toggle {
+  box-sizing: border-box !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+.app-shell-clean .case-calendar-approval .btn-primary,
+.app-shell-clean .case-calendar-approval .btn-ghost,
+.app-shell-clean .case-email-badges .badge,
+.app-shell-clean .case-email-actions .btn-ghost,
+.app-shell-clean .case-email-actions .btn-primary {
+  font-size: 12px !important;
+  min-height: 34px !important;
+  padding: 8px 10px !important;
+}
+
+@media (max-width: 1180px) {
+  .app-shell-clean .case-detail-grid {
     grid-template-columns: 1fr !important;
   }
 }

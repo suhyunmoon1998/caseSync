@@ -427,6 +427,19 @@ const hasWrittenDiscoverySignal = (sets = []) => {
   ));
 };
 
+const hasReliableDiscoveryDeadlineSource = (email = {}, parsed = {}) => {
+  if (!parsed?.proofServiceDate || !hasWrittenDiscoverySignal(parsed.discoverySets)) {
+    return false;
+  }
+
+  const subject = String(email.subject || '').trim();
+  const text = `${subject}\n${email.snippet || ''}\n${email.body || ''}\n${parsed.summary || ''}`;
+  const statusOnlySubject = /\b(case status list|active case data transfer|data transfer update|eod|end of day|todo|to do)\b/i.test(subject);
+  const legalServiceSignal = /\b(proof of service|electronic service|personal service|mail service|served|service by|discovery served|interrogator(?:y|ies)|requests?\s+for\s+production|requests?\s+for\s+admissions?|rfps?|rfas?|g[-\s]?rogs?|e[-\s]?rogs?)\b/i.test(text);
+
+  return legalServiceSignal && !statusOnlySubject;
+};
+
 const discoverySetsForPackage = (sets = []) => {
   const normalized = normalizeDiscoverySets(sets);
   return normalized.length ? normalized : ['Discovery responses'];
@@ -716,13 +729,16 @@ export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
             const parsedCaseId = safeCaseId(parsed.caseId);
             const caseId = isValidCaseId(parsedCaseId) ? parsedCaseId : '';
             const deadlines = Array.isArray(parsed.deadlines) ? [...parsed.deadlines] : [];
-            const responsePackage = buildResponsePackage({
+            let responsePackage = buildResponsePackage({
               proofServiceDate: parsed.proofServiceDate,
               proofServiceMethod: parsed.proofServiceMethod,
               discoverySets: parsed.discoverySets,
               caseId,
               caseTitle: parsed.caseTitle || caseId,
             });
+            if (responsePackage && !hasReliableDiscoveryDeadlineSource(email, parsed)) {
+              responsePackage = null;
+            }
 
             const proofDeadline = responsePackage?.responseDeadline || null;
             if (proofDeadline) {
@@ -908,13 +924,16 @@ export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
 
             const caseConfidence = estimateLabel(parsed.caseConfidence, parsed.caseId ? 86 : 72);
             const deadlines = Array.isArray(parsed.deadlines) ? [...parsed.deadlines] : [];
-            const responsePackage = buildResponsePackage({
+            let responsePackage = buildResponsePackage({
               proofServiceDate: parsed.proofServiceDate,
               proofServiceMethod: parsed.proofServiceMethod,
               discoverySets: parsed.discoverySets,
               caseId: matchedCaseId,
               caseTitle: folder.caseTitle || matchedCaseId,
             });
+            if (responsePackage && !hasReliableDiscoveryDeadlineSource(email, parsed)) {
+              responsePackage = null;
+            }
             const proofDeadline = responsePackage?.responseDeadline || null;
             if (proofDeadline && !deadlines.some((item) => item.date === proofDeadline.date && item.action === proofDeadline.action)) {
               deadlines.push(proofDeadline);
@@ -1443,13 +1462,41 @@ export const repairCaseFromStoredEmails = async (caseId) => {
   const emails = await getCaseEmailRecords(normalizedCaseId, 100);
   const discoveryEmail = emails.find((email) => {
     const raw = email.raw || {};
-    return raw.proofServiceDate && hasWrittenDiscoverySignal(raw.discoverySets || []);
+    return hasReliableDiscoveryDeadlineSource(
+      {
+        subject: email.subject,
+        snippet: email.snippet,
+        body: email.bodyPreview,
+      },
+      {
+        proofServiceDate: raw.proofServiceDate,
+        discoverySets: raw.discoverySets || [],
+        summary: raw.parsedSummary || raw.aiAnalysis?.summary || '',
+      },
+    );
   });
 
   if (!discoveryEmail) {
+    const cleanedDeadlines = (target.deadlines || []).filter((deadline) => !/^response due:\s*proof deadline/i.test(String(deadline?.action || '')));
+    const record = await upsertCaseRecord({
+      ...target,
+      deadlines: cleanedDeadlines,
+      replaceDeadlines: true,
+      proofServiceDate: '',
+      proofServiceMethod: '',
+      responseDeadlineDate: '',
+      discoverySets: [],
+      responsePackage: null,
+      lastUpdated: new Date().toISOString(),
+      calendarAutoEnabled: false,
+      reviewBeforeCalendarUpdate: true,
+      calendarAction: 'Invalid discovery response deadline cleared; no reliable proof/discovery email source found.',
+    });
+
     return {
-      case: toDeadlineUi(target),
+      case: toDeadlineUi(record),
       repaired: false,
+      cleared: true,
       reason: 'No stored email had both a proof date and written discovery sets.',
     };
   }
