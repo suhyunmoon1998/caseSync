@@ -8269,3 +8269,18 @@ td {
     font-size: 25px !important;
   }
 }
+
+/* Specific hero copy size reduction */
+.commercial-onboarding h3 {
+  font-size: clamp(16px, 1.35vw, 22px) !important;
+  line-height: 1.14 !important;
+  letter-spacing: -0.025em !important;
+  max-width: 620px !important;
+}
+
+.canvas-stage-head h1 {
+  font-size: clamp(20px, 1.8vw, 28px) !important;
+  line-height: 1.12 !important;
+  letter-spacing: -0.032em !important;
+  max-width: 640px !important;
+}
