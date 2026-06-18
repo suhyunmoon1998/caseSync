@@ -436,7 +436,7 @@ const hasReliableDiscoveryDeadlineSource = (email = {}, parsed = {}) => {
   const emailText = `${subject}\n${email.snippet || ''}\n${email.body || ''}`;
   const parsedText = `${parsed.summary || ''}`;
   const text = `${emailText}\n${parsedText}`;
-  const statusOnlySubject = /\b(case status list|case list|active case data transfer|data transfer update|eod|end of day|todo|to do)\b/i.test(subject);
+  const statusOnlySubject = /\b(case status list|case list|chat case update|active case data transfer|data transfer update|eod|end of day|todo|to do)\b/i.test(subject);
   const writtenDiscoveryInEmail = /\b(discovery served|written discovery|form interrogator(?:y|ies)|special interrogator(?:y|ies)|interrogator(?:y|ies)|requests?\s+for\s+production|requests?\s+for\s+admissions?|rfps?|rfas?|s[-\s]?rogs?|g[-\s]?rogs?|e[-\s]?rogs?)\b/i.test(emailText);
   const courtNoticeOnly = /\b(court eservice|eservice-donotreply@lacourt|minute order|notice of case management conference|case management conference|cmc|hearing|osc declaration|clerk'?s certificate)\b/i.test(text)
     && !writtenDiscoveryInEmail;
