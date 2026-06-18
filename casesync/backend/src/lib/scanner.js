@@ -881,7 +881,7 @@ export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
         const emails = await fetchCaseFolderEmails(auth, searchTerms, caseFolderEmailLimit);
         for (const email of emails) {
           const alreadySavedToCase = await getCaseEmailByMessageId(email.id);
-          if (alreadySavedToCase?.caseId === folder.caseId) {
+          if (!requestedCaseFilters.size && alreadySavedToCase?.caseId === folder.caseId) {
             continue;
           }
 
