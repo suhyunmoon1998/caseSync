@@ -59,6 +59,7 @@ export default function CaseCard({
   const caseId = caseItem.caseId || '(No case ID)';
   const caseColor = caseItem.caseColor || priority.color;
   const relatedEmailCount = Number(caseItem.relatedEmailCount || 0);
+  const relatedEmailReviewCount = Number(caseItem.relatedEmailReviewCount || 0);
 
   return (
     <button
@@ -89,6 +90,7 @@ export default function CaseCard({
         <span className="case-folder-email-count">
           <small>Related emails</small>
           <strong>{relatedEmailCount}</strong>
+          {relatedEmailReviewCount > 0 ? <em>{relatedEmailReviewCount} review</em> : null}
         </span>
       </span>
     </button>

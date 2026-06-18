@@ -106,6 +106,8 @@ const normalizeCaseRow = (row) => ({
   reviewBeforeCalendarUpdate: row.review_before_calendar_update !== false,
   calendarUpdateHistory: row.calendar_update_history || [],
   relatedEmailCount: Number(row.related_email_count || 0),
+  relatedEmailReviewCount: Number(row.related_email_review_count || 0),
+  relatedEmailTotalCount: Number(row.related_email_total_count || row.related_email_count || 0),
 });
 
 const normalizeCaseEmailRow = (row) => ({
@@ -301,12 +303,14 @@ export const initDb = async () => {
   if (shouldUsePostgres()) {
     storageMode = 'postgres';
     await initPostgresDb();
+    await closeStaleScanLogs();
     await mergeExistingDuplicateCaseRecordsByNumber();
     return;
   }
 
   storageMode = 'json';
   await initJsonDb();
+  await closeStaleScanLogs();
   await mergeExistingDuplicateCaseRecordsByNumber();
 };
 
@@ -316,6 +320,50 @@ const write = async () => {
   db.data.scanLog = db.data.scanLog.slice(-2000);
   db.data.processedEmailIds = db.data.processedEmailIds.slice(-10000);
   await db.write();
+};
+
+const closeStaleScanLogs = async () => {
+  if (storageMode === 'postgres') {
+    await getPool().query(`
+      update scan_log
+      set
+        finished_at = now(),
+        reason = coalesce(reason, 'Stale unfinished scan log closed during startup'),
+        errors = case
+          when jsonb_array_length(coalesce(errors, '[]'::jsonb)) = 0
+            then jsonb_build_array('Stale unfinished scan log closed during startup')
+          else errors
+        end
+      where finished_at is null
+        and started_at < now() - interval '15 minutes'
+    `);
+    return;
+  }
+
+  await db.read();
+  db.data = sanitizeData(db.data || {});
+  const cutoff = Date.now() - 15 * 60 * 1000;
+  let changed = false;
+  db.data.scanLog = db.data.scanLog.map((entry) => {
+    const startedAt = new Date(entry.startedAt || entry.started_at || 0).getTime();
+    if (entry.finishedAt || !startedAt || startedAt >= cutoff) {
+      return entry;
+    }
+
+    changed = true;
+    return {
+      ...entry,
+      finishedAt: new Date().toISOString(),
+      reason: entry.reason || 'Stale unfinished scan log closed during startup',
+      errors: Array.isArray(entry.errors) && entry.errors.length
+        ? entry.errors
+        : ['Stale unfinished scan log closed during startup'],
+    };
+  });
+
+  if (changed) {
+    await write();
+  }
 };
 
 export const getTriggers = async () => {
@@ -775,7 +823,7 @@ const chooseCanonicalCaseId = (payload = {}, duplicates = [], caseNumber = '') =
   const payloadId = String(payload.caseId || '').trim();
   const payloadNumbers = extractCaseNumbersFromText(payloadId);
   if (payloadId && !isGeneratedCaseFolderId(payloadId) && payloadNumbers.includes(caseNumber)) {
-    return normalizeCaseNumber(payloadId);
+    return payloadId;
   }
 
   const existingNumberCase = duplicates.find((item) => {
@@ -785,7 +833,7 @@ const chooseCanonicalCaseId = (payload = {}, duplicates = [], caseNumber = '') =
       && extractCaseNumbersFromText(existingId).includes(caseNumber);
   });
 
-  return normalizeCaseNumber(existingNumberCase?.caseId || caseNumber);
+  return existingNumberCase?.caseId || caseNumber;
 };
 
 const mergeCaseRecords = (existing = {}, incoming = {}) => {
@@ -1123,10 +1171,26 @@ const mergeExistingDuplicateCaseRecordsByNumber = async () => {
 export const getCaseRecordsFromDb = async () => {
   if (storageMode === 'postgres') {
     const { rows } = await getPool().query(`
-      select cases.*, coalesce(email_counts.related_email_count, 0)::integer as related_email_count
+      select
+        cases.*,
+        coalesce(email_counts.related_email_count, 0)::integer as related_email_count,
+        coalesce(email_counts.related_email_review_count, 0)::integer as related_email_review_count,
+        coalesce(email_counts.related_email_total_count, 0)::integer as related_email_total_count
       from cases
       left join (
-        select case_id, count(*)::integer as related_email_count
+        select
+          case_id,
+          count(*) filter (
+            where classification is distinct from 'not_relevant'
+              and needs_review = false
+          )::integer as related_email_count,
+          count(*) filter (
+            where classification is distinct from 'not_relevant'
+              and needs_review = true
+          )::integer as related_email_review_count,
+          count(*) filter (
+            where classification is distinct from 'not_relevant'
+          )::integer as related_email_total_count
         from case_emails
         group by case_id
       ) email_counts on email_counts.case_id = cases.case_id
@@ -1140,14 +1204,25 @@ export const getCaseRecordsFromDb = async () => {
   const emailCounts = db.data.emails.reduce((map, email) => {
     const caseId = String(email.caseId || '').trim();
     if (caseId) {
-      map.set(caseId, (map.get(caseId) || 0) + 1);
+      const current = map.get(caseId) || { confirmed: 0, review: 0, total: 0 };
+      if (email.classification !== 'not_relevant') {
+        current.total += 1;
+        if (email.needsReview) {
+          current.review += 1;
+        } else {
+          current.confirmed += 1;
+        }
+      }
+      map.set(caseId, current);
     }
     return map;
   }, new Map());
 
   return db.data.cases.map((item) => ({
     ...item,
-    relatedEmailCount: emailCounts.get(item.caseId) || 0,
+    relatedEmailCount: emailCounts.get(item.caseId)?.confirmed || 0,
+    relatedEmailReviewCount: emailCounts.get(item.caseId)?.review || 0,
+    relatedEmailTotalCount: emailCounts.get(item.caseId)?.total || 0,
   }));
 };
 
