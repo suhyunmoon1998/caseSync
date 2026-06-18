@@ -7,9 +7,20 @@ import { getLastScan, getRecentScanLogs } from '../lib/db.js';
 
 const router = express.Router();
 
-router.post('/run', async (_req, res) => {
+const boundedLimit = (value, fallback, max) => {
+  const parsed = Number.parseInt(String(value || ''), 10);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.max(1, Math.min(max, parsed));
+};
+
+router.post('/run', async (req, res) => {
   try {
-    const result = await runAutoScan('manual');
+    const result = await runAutoScan('manual', {
+      maxEmails: boundedLimit(req.body?.maxEmails || req.query.maxEmails, undefined, 1000),
+      caseFolderMaxEmails: boundedLimit(req.body?.caseFolderMaxEmails || req.query.caseFolderMaxEmails, undefined, 100),
+    });
     res.json({ success: true, result });
   } catch (error) {
     console.error('Scan failed', error);

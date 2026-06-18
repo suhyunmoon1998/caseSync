@@ -393,7 +393,15 @@ export const getScanStatus = async () => {
   return getScanState();
 };
 
-export const runAutoScan = async (triggerSource = 'auto') => {
+const readScanLimit = (value, fallback, max) => {
+  const parsed = Number.parseInt(String(value || ''), 10);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.max(1, Math.min(max, parsed));
+};
+
+export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
   if (runningState.running) {
     return {
       skipped: true,
@@ -402,6 +410,8 @@ export const runAutoScan = async (triggerSource = 'auto') => {
   }
 
   runningState.running = true;
+  const triggerEmailLimit = readScanLimit(options.maxEmails, scanMaxEmails, scanMaxEmails);
+  const caseFolderEmailLimit = readScanLimit(options.caseFolderMaxEmails, caseFolderScanMaxEmails, caseFolderScanMaxEmails);
   await setScanState({
     isRunning: true,
     nextRun: null,
@@ -445,7 +455,7 @@ export const runAutoScan = async (triggerSource = 'auto') => {
 
       for (const trigger of enabledTriggers) {
         const calendarId = trigger.calendarId || defaultCalendarId;
-        const emails = await fetchTriggerEmails(auth, trigger, scanMaxEmails);
+        const emails = await fetchTriggerEmails(auth, trigger, triggerEmailLimit);
 
         for (const email of emails) {
           summary.emailsScanned += 1;
@@ -630,7 +640,7 @@ export const runAutoScan = async (triggerSource = 'auto') => {
       }
 
       for (const folder of knownCaseFolders) {
-        const emails = await fetchCaseNumberEmails(auth, folder.caseId, caseFolderScanMaxEmails);
+        const emails = await fetchCaseNumberEmails(auth, folder.caseId, caseFolderEmailLimit);
         for (const email of emails) {
           const alreadySavedToCase = await getCaseEmailByMessageId(email.id);
           if (alreadySavedToCase?.caseId === folder.caseId) {
