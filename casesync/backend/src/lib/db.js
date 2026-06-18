@@ -300,11 +300,13 @@ export const initDb = async () => {
   if (shouldUsePostgres()) {
     storageMode = 'postgres';
     await initPostgresDb();
+    await mergeExistingDuplicateCaseRecordsByNumber();
     return;
   }
 
   storageMode = 'json';
   await initJsonDb();
+  await mergeExistingDuplicateCaseRecordsByNumber();
 };
 
 export const getStorageMode = () => storageMode;
@@ -722,6 +724,69 @@ const firstNonEmpty = (...values) => values.find((value) => (
   && !(typeof value === 'string' && value.trim() === '')
 ));
 
+const normalizeCaseNumber = (value = '') => String(value || '')
+  .toUpperCase()
+  .replace(/[^A-Z0-9]+/g, '');
+
+const isGeneratedCaseFolderId = (value = '') => normalizeCaseNumber(value).startsWith('CASE');
+
+const extractCaseNumbersFromText = (value = '') => {
+  const text = String(value || '').toUpperCase();
+  const found = [];
+  const add = (candidate = '') => {
+    const clean = normalizeCaseNumber(candidate);
+    if (clean.length >= 7 && !found.includes(clean)) {
+      found.push(clean);
+    }
+  };
+
+  for (const match of text.matchAll(/\b\d{2}\s*[A-Z]{2,6}\s*[- ]?\s*\d{3,8}\b/g)) {
+    add(match[0]);
+  }
+
+  for (const match of text.matchAll(/\b\d{7,12}\b/g)) {
+    add(match[0]);
+  }
+
+  return found;
+};
+
+const extractCaseNumbersFromRecord = (record = {}) => {
+  const fields = [
+    record.caseId,
+    record.caseTitle,
+    record.summary,
+    record.description,
+    record.sourceEventSummary,
+    record.sourceAccount,
+  ];
+
+  if (Array.isArray(record.deadlines)) {
+    fields.push(JSON.stringify(record.deadlines));
+  }
+
+  return [...new Set(fields.flatMap(extractCaseNumbersFromText))];
+};
+
+const primaryCaseNumberForRecord = (record = {}) => extractCaseNumbersFromRecord(record)[0] || '';
+
+const chooseCanonicalCaseId = (payload = {}, duplicates = [], caseNumber = '') => {
+  const payloadId = String(payload.caseId || '').trim();
+  const payloadNumbers = extractCaseNumbersFromText(payloadId);
+  if (payloadId && !isGeneratedCaseFolderId(payloadId) && payloadNumbers.includes(caseNumber)) {
+    return normalizeCaseNumber(payloadId);
+  }
+
+  const existingNumberCase = duplicates.find((item) => {
+    const existingId = String(item.caseId || '').trim();
+    return existingId
+      && !isGeneratedCaseFolderId(existingId)
+      && extractCaseNumbersFromText(existingId).includes(caseNumber);
+  });
+
+  return normalizeCaseNumber(existingNumberCase?.caseId || caseNumber);
+};
+
 const mergeCaseRecords = (existing = {}, incoming = {}) => {
   const incomingIsManualFolder = incoming.triggerName === 'Manual case folder';
   const existingHasManualIdentity = Boolean(existing.caseColor);
@@ -779,8 +844,42 @@ const mergeCaseRecords = (existing = {}, incoming = {}) => {
   };
 };
 
+const mergePayloadWithDuplicateCaseNumbers = (payload, existingCases = []) => {
+  const caseNumber = primaryCaseNumberForRecord(payload);
+  if (!caseNumber) {
+    return { payload, duplicateCaseIds: [] };
+  }
+
+  const duplicates = existingCases.filter((item) => {
+    const existingCaseId = String(item.caseId || '').trim();
+    if (!existingCaseId || existingCaseId === payload.caseId) {
+      return false;
+    }
+
+    return extractCaseNumbersFromRecord(item).includes(caseNumber);
+  });
+
+  const canonicalCaseId = chooseCanonicalCaseId(payload, duplicates, caseNumber);
+  let merged = {
+    ...payload,
+    caseId: canonicalCaseId,
+    id: payload.id === payload.caseId || !payload.id ? canonicalCaseId : payload.id,
+  };
+
+  for (const duplicate of duplicates) {
+    merged = mergeCaseRecords(duplicate, merged);
+    merged.caseId = canonicalCaseId;
+    merged.id = merged.id === duplicate.caseId || !merged.id ? canonicalCaseId : merged.id;
+  }
+
+  return {
+    payload: merged,
+    duplicateCaseIds: duplicates.map((item) => item.caseId).filter((item) => item && item !== canonicalCaseId),
+  };
+};
+
 export const upsertCaseRecord = async (record) => {
-  const payload = {
+  let payload = {
     id: record.id || record.eventId || record.caseId,
     caseId: record.caseId,
     caseTitle: record.caseTitle || record.caseId,
@@ -823,6 +922,13 @@ export const upsertCaseRecord = async (record) => {
   }
 
   if (storageMode === 'postgres') {
+    const existingRows = await getPool().query('select * from cases');
+    const duplicateMerge = mergePayloadWithDuplicateCaseNumbers(
+      payload,
+      existingRows.rows.map(normalizeCaseRow),
+    );
+    payload = duplicateMerge.payload;
+
     const { rows } = await getPool().query(
       `insert into cases (
         case_id, event_id, case_title, case_color, status, trigger_id, trigger_name, html_link, summary,
@@ -932,11 +1038,31 @@ export const upsertCaseRecord = async (record) => {
         JSON.stringify(payload.calendarUpdateHistory),
       ],
     );
+    if (duplicateMerge.duplicateCaseIds.length) {
+      await getPool().query(
+        'update case_emails set case_id = $1, updated_at = now() where case_id = any($2::text[])',
+        [payload.caseId, duplicateMerge.duplicateCaseIds],
+      );
+      await getPool().query(
+        'delete from cases where case_id = any($1::text[])',
+        [duplicateMerge.duplicateCaseIds],
+      );
+    }
     return normalizeCaseRow(rows[0]);
   }
 
   await db.read();
   db.data = sanitizeData(db.data || {});
+  const duplicateMerge = mergePayloadWithDuplicateCaseNumbers(payload, db.data.cases);
+  payload = duplicateMerge.payload;
+  if (duplicateMerge.duplicateCaseIds.length) {
+    db.data.cases = db.data.cases.filter((item) => !duplicateMerge.duplicateCaseIds.includes(item.caseId));
+    db.data.emails = db.data.emails.map((item) => (
+      duplicateMerge.duplicateCaseIds.includes(item.caseId)
+        ? { ...item, caseId: payload.caseId, updatedAt: new Date().toISOString() }
+        : item
+    ));
+  }
   const index = db.data.cases.findIndex((item) => item.caseId === payload.caseId);
   const next = { ...payload, updatedAt: new Date().toISOString() };
   if (index === -1) {
@@ -949,6 +1075,48 @@ export const upsertCaseRecord = async (record) => {
   }
   await write();
   return next;
+};
+
+const mergeExistingDuplicateCaseRecordsByNumber = async () => {
+  const records = storageMode === 'postgres'
+    ? (await getPool().query('select * from cases order by updated_at desc')).rows.map(normalizeCaseRow)
+    : (() => {
+      db.data = sanitizeData(db.data || {});
+      return db.data.cases.slice();
+    })();
+
+  const groups = new Map();
+  for (const record of records) {
+    const caseNumber = primaryCaseNumberForRecord(record);
+    if (!caseNumber) {
+      continue;
+    }
+
+    groups.set(caseNumber, [...(groups.get(caseNumber) || []), record]);
+  }
+
+  for (const [caseNumber, group] of groups.entries()) {
+    if (group.length < 2) {
+      continue;
+    }
+
+    const canonicalCaseId = chooseCanonicalCaseId(group[0], group.slice(1), caseNumber);
+    let merged = {
+      ...group[0],
+      caseId: canonicalCaseId,
+      id: canonicalCaseId,
+      calendarAction: 'Duplicate case folders merged',
+    };
+
+    for (const record of group.slice(1)) {
+      merged = mergeCaseRecords(record, merged);
+      merged.caseId = canonicalCaseId;
+      merged.id = canonicalCaseId;
+      merged.calendarAction = 'Duplicate case folders merged';
+    }
+
+    await upsertCaseRecord(merged);
+  }
 };
 
 export const getCaseRecordsFromDb = async () => {
