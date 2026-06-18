@@ -513,6 +513,7 @@ export const parseEmail = async ({ subject = '', body = '', from = '', date = ''
     hintCaseId ? '' : null,
     'If this email includes proof-of-service / service of docs, find proofServiceDate (YYYY-MM-DD) and proofServiceMethod (personal/electronic/mail).',
     'If the email serves discovery, identify discoverySets using short labels such as E-rogs, G-rogs, RFPs, and RFAs.',
+    'Only return discoverySets that are clearly present. Do not return generic labels like "Discovery responses" unless the email clearly says written discovery was served but does not identify the specific set.',
     'Return ONLY this JSON (no other text):',
     '{',
     '  "caseId": "extracted case/docket/reference number or null",',

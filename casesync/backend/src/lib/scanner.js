@@ -204,7 +204,18 @@ const normalizeDiscoverySets = (sets = []) => {
   const cleaned = (Array.isArray(sets) ? sets : [])
     .map((item) => String(item || '').trim())
     .filter(Boolean);
-  return [...new Set(cleaned.length ? cleaned : ['Discovery responses'])];
+  return [...new Set(cleaned)];
+};
+
+const hasWrittenDiscoverySignal = (sets = []) => {
+  return normalizeDiscoverySets(sets).some((item) => (
+    /\b(e[-\s]?rogs?|g[-\s]?rogs?|rfps?|rfas?|interrogator(?:y|ies)|requests?\s+for\s+(?:production|admissions?))\b/i.test(item)
+  ));
+};
+
+const discoverySetsForPackage = (sets = []) => {
+  const normalized = normalizeDiscoverySets(sets);
+  return normalized.length ? normalized : ['Discovery responses'];
 };
 
 const buildSkeletonDocuments = (discoverySets) => {
@@ -254,7 +265,11 @@ const buildResponsePackage = ({
     return null;
   }
 
-  const sets = normalizeDiscoverySets(discoverySets);
+  if (!hasWrittenDiscoverySignal(discoverySets)) {
+    return null;
+  }
+
+  const sets = discoverySetsForPackage(discoverySets);
   const setLabel = sets.join(', ');
   const caseLabel = caseTitle || caseId || 'CaseSync';
   const clientCallDate = addDaysIso(proofServiceDate, 7);
