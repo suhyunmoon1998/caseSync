@@ -303,6 +303,52 @@ const mergeCaseDeadlines = (...deadlineGroups) => {
   return merged;
 };
 
+const scanCaseFilterKeys = (value = '') => {
+  const raw = String(value || '').trim();
+  const keys = new Set();
+  if (!raw) return keys;
+
+  keys.add(raw.toLowerCase());
+  const normalizedCase = normalizeCaseNumber(raw);
+  if (normalizedCase) keys.add(normalizedCase.toLowerCase());
+  const normalizedText = normalizeTextMatch(raw);
+  if (normalizedText) keys.add(normalizedText);
+
+  return keys;
+};
+
+const normalizeScanCaseFilters = (value) => {
+  const values = Array.isArray(value)
+    ? value
+    : String(value || '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  const filters = new Set();
+  values.forEach((item) => {
+    scanCaseFilterKeys(item).forEach((key) => filters.add(key));
+  });
+  return filters;
+};
+
+const caseMatchesScanFilter = (folder = {}, filters = new Set()) => {
+  if (!filters.size) return true;
+  const candidates = [
+    folder.caseId,
+    folder.caseTitle,
+    folder.title,
+    folder.name,
+    ...caseFolderSearchTerms(folder),
+  ];
+
+  return candidates.some((candidate) => {
+    for (const key of scanCaseFilterKeys(candidate)) {
+      if (filters.has(key)) return true;
+    }
+    return false;
+  });
+};
+
 const emailMatchesCaseFolder = (email = {}, folder = {}) => {
   const text = normalizeTextMatch(`${email.subject || ''}\n${email.from || ''}\n${email.snippet || ''}\n${email.body || ''}`);
   const terms = caseFolderSearchTerms(folder);
@@ -627,7 +673,10 @@ export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
     const triggers = await getTriggers();
     const enabledTriggers = triggers.filter((trigger) => trigger.enabled !== false);
     const accounts = await getAllAccountsRaw();
-    const knownCaseFolders = (await getCaseRecordsFromDb()).filter((item) => isValidCaseFolderId(item.caseId));
+    const requestedCaseFilters = normalizeScanCaseFilters(options.caseIds);
+    const knownCaseFolders = (await getCaseRecordsFromDb())
+      .filter((item) => isValidCaseFolderId(item.caseId))
+      .filter((item) => caseMatchesScanFilter(item, requestedCaseFilters));
 
     for (const account of accounts) {
       if (!account?.tokens) {
@@ -640,7 +689,7 @@ export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
         redirectUri: process.env.GOOGLE_REDIRECT_URI,
       });
 
-      for (const trigger of enabledTriggers) {
+      if (!requestedCaseFilters.size) for (const trigger of enabledTriggers) {
         const calendarId = trigger.calendarId || defaultCalendarId;
         const emails = await fetchTriggerEmails(auth, trigger, triggerEmailLimit);
 
