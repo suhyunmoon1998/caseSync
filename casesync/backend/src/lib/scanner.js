@@ -30,7 +30,7 @@ import {
 
 const defaultCalendarId = process.env.SCAN_CALENDAR_ID || 'primary';
 const scanMaxEmails = Number(process.env.SCAN_MAX_EMAILS || 1000);
-const caseFolderScanMaxEmails = Number(process.env.CASE_FOLDER_SCAN_MAX_EMAILS || 25);
+const caseFolderScanMaxEmails = Number(process.env.CASE_FOLDER_SCAN_MAX_EMAILS || 8);
 const scanStaleMs = Number(process.env.SCAN_STALE_MS || 15 * 60 * 1000);
 const ALLOW_AUTOMATIC_CALENDAR_WRITES = process.env.ALLOW_AUTOMATIC_CALENDAR_WRITES === 'true';
 
