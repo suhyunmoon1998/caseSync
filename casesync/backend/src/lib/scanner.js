@@ -1471,10 +1471,7 @@ export const repairCaseFromStoredEmails = async (caseId) => {
     };
   }
 
-  const deadlines = mergeCaseDeadlines(
-    (target.deadlines || []).filter((deadline) => !/^response due:\s*proof deadline/i.test(String(deadline?.action || ''))),
-    [responsePackage.responseDeadline],
-  );
+  const deadlines = [responsePackage.responseDeadline];
 
   const record = await upsertCaseRecord({
     ...target,
