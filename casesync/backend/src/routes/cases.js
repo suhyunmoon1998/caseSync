@@ -7,6 +7,7 @@ import {
   createManualCase,
   createCaseFolder,
   approveCaseCalendarUpdate,
+  repairCaseFromStoredEmails,
 } from '../lib/scanner.js';
 import {
   getCaseEmailRecords,
@@ -135,6 +136,20 @@ router.post('/:caseId/calendar/approve', async (req, res) => {
   } catch (error) {
     console.error('Approve case calendar failed', error);
     res.status(400).json({ error: error.message || 'Failed to approve calendar update' });
+  }
+});
+
+router.post('/:caseId/repair-from-emails', async (req, res) => {
+  try {
+    const caseId = decodeURIComponent(req.params.caseId || '').trim();
+    const result = await repairCaseFromStoredEmails(caseId);
+    if (!result) {
+      return res.status(404).json({ error: 'Case not found' });
+    }
+    res.json({ success: true, ...result });
+  } catch (error) {
+    console.error('Repair case from emails failed', error);
+    res.status(400).json({ error: error.message || 'Failed to repair case from stored emails' });
   }
 });
 

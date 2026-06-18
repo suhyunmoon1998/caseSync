@@ -11,6 +11,7 @@ import {
   upsertCaseRecord,
   upsertCaseEmailRecord,
   getCaseEmailByMessageId,
+  getCaseEmailRecords,
   getCaseRecordsFromDb,
   updateCaseRecordStatus,
   deleteCaseRecord,
@@ -1424,6 +1425,87 @@ export const approveCaseCalendarUpdate = async (caseId) => {
   return {
     case: toDeadlineUi(record),
     calendarEventUrl: event.htmlLink || '',
+  };
+};
+
+export const repairCaseFromStoredEmails = async (caseId) => {
+  const normalizedCaseId = safeCaseId(caseId);
+  if (!isValidCaseFolderId(normalizedCaseId)) {
+    throw new Error('A valid case number or case name is required');
+  }
+
+  const stored = await getCaseRecordsFromDb();
+  const target = stored.find((item) => item.caseId === normalizedCaseId);
+  if (!target) {
+    return null;
+  }
+
+  const emails = await getCaseEmailRecords(normalizedCaseId, 100);
+  const discoveryEmail = emails.find((email) => {
+    const raw = email.raw || {};
+    return raw.proofServiceDate && hasWrittenDiscoverySignal(raw.discoverySets || []);
+  });
+
+  if (!discoveryEmail) {
+    return {
+      case: toDeadlineUi(target),
+      repaired: false,
+      reason: 'No stored email had both a proof date and written discovery sets.',
+    };
+  }
+
+  const raw = discoveryEmail.raw || {};
+  const responsePackage = buildResponsePackage({
+    proofServiceDate: raw.proofServiceDate,
+    proofServiceMethod: raw.proofServiceMethod || 'electronic',
+    discoverySets: raw.discoverySets || [],
+    caseId: normalizedCaseId,
+    caseTitle: target.caseTitle || normalizedCaseId,
+  });
+
+  if (!responsePackage?.responseDeadline) {
+    return {
+      case: toDeadlineUi(target),
+      repaired: false,
+      reason: 'Stored discovery email did not produce a valid response deadline package.',
+    };
+  }
+
+  const deadlines = mergeCaseDeadlines(
+    (target.deadlines || []).filter((deadline) => !/^response due:\s*proof deadline/i.test(String(deadline?.action || ''))),
+    [responsePackage.responseDeadline],
+  );
+
+  const record = await upsertCaseRecord({
+    ...target,
+    caseId: normalizedCaseId,
+    caseTitle: target.caseTitle || normalizedCaseId,
+    summary: raw.parsedSummary || target.summary || 'Repaired from stored discovery email.',
+    deadlines,
+    caseConfidence: Math.max(Number(target.caseConfidence || 0), Number(discoveryEmail.caseConfidence || 0), 86),
+    isEstimated: false,
+    proofServiceDate: raw.proofServiceDate,
+    proofServiceMethod: responsePackage.proofServiceMethod,
+    discoverySets: responsePackage.discoverySets,
+    responseDeadlineDate: responsePackage.responseDeadlineDate,
+    responsePackage,
+    sourceAccount: discoveryEmail.accountEmail || target.sourceAccount || '',
+    sourceCalendarId: target.sourceCalendarId || defaultCalendarId,
+    sourceEventSummary: target.sourceEventSummary || '',
+    lastUpdated: new Date().toISOString(),
+    calendarAutoEnabled: false,
+    reviewBeforeCalendarUpdate: true,
+    calendarAction: `Discovery package repaired from stored email: ${discoveryEmail.subject || discoveryEmail.messageId}`,
+  });
+
+  return {
+    case: toDeadlineUi(record),
+    repaired: true,
+    sourceEmail: {
+      subject: discoveryEmail.subject || '',
+      from: discoveryEmail.fromEmail || '',
+      receivedAt: discoveryEmail.receivedAt || '',
+    },
   };
 };
 
