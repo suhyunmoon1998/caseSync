@@ -16,6 +16,7 @@ dotenv.config();
 
 const app = express();
 const port = Number(process.env.PORT || 3001);
+const anthropicModel = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001';
 const corsOrigins = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || 'http://localhost:3000')
   .split(',')
   .map((item) => item.trim())
@@ -69,7 +70,18 @@ app.use('/api/cases', casesRouter);
 app.use('/api/calendar', calendarRouter);
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, app: 'casesync-backend', storage: getStorageMode() });
+  res.json({
+    ok: true,
+    app: 'casesync-backend',
+    storage: getStorageMode(),
+    ai: {
+      anthropicConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
+      model: anthropicModel,
+    },
+    calendarSafety: {
+      automaticWritesEnabled: process.env.ALLOW_AUTOMATIC_CALENDAR_WRITES === 'true',
+    },
+  });
 });
 
 app.get('/api/scan/status', async (_req, res) => {
