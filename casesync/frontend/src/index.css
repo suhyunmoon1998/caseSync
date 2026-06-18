@@ -6959,3 +6959,117 @@ td {
   background: #ff6a00;
   color: #050505;
 }
+
+/* Emergency top header fix: keep logo/account bar fully inside viewport */
+.app-header,
+.top-header,
+.account-header,
+.floating-header,
+.header-bar,
+.site-header,
+.navbar,
+.top-account-bar,
+[class*="topbar"],
+[class*="Topbar"],
+[class*="header"],
+[class*="Header"] {
+  max-width: calc(100vw - 24px) !important;
+  box-sizing: border-box !important;
+}
+
+body > .app-header,
+body > .top-header,
+body > .account-header,
+#root > .app-header,
+#root > .top-header,
+#root > .account-header,
+.app-shell > .app-header,
+.app-shell > .top-header,
+.app-shell > .account-header,
+.app-shell > .topbar,
+.app-shell > [class*="header"],
+.app-shell > [class*="Header"] {
+  position: sticky !important;
+  top: 12px !important;
+  left: 12px !important;
+  right: 12px !important;
+  width: calc(100vw - 24px) !important;
+  max-width: calc(100vw - 24px) !important;
+  margin: 12px auto 18px !important;
+  transform: none !important;
+  overflow: visible !important;
+  z-index: 50 !important;
+}
+
+.app-shell > .topbar,
+.app-shell > [class*="header"],
+.app-shell > [class*="Header"] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+}
+
+.app-shell > .topbar > *,
+.app-shell > [class*="header"] > *,
+.app-shell > [class*="Header"] > * {
+  min-width: 0 !important;
+}
+
+.app-shell > .topbar img,
+.app-shell > [class*="header"] img,
+.app-shell > [class*="Header"] img,
+.app-shell > .topbar .logo-image,
+.app-shell > [class*="header"] .logo-image,
+.app-shell > [class*="Header"] .logo-image {
+  flex: 0 0 auto !important;
+  display: block !important;
+}
+
+.app-shell > .topbar .brand-panel,
+.app-shell > [class*="header"] .brand-panel,
+.app-shell > [class*="Header"] .brand-panel,
+.app-shell > .topbar [class*="brand"],
+.app-shell > [class*="header"] [class*="brand"],
+.app-shell > [class*="Header"] [class*="brand"] {
+  flex: 0 1 auto !important;
+  min-width: max-content !important;
+  overflow: visible !important;
+}
+
+.app-shell > .topbar .hero-actions,
+.app-shell > [class*="header"] .hero-actions,
+.app-shell > [class*="Header"] .hero-actions,
+.app-shell > .topbar [class*="actions"],
+.app-shell > [class*="header"] [class*="actions"],
+.app-shell > [class*="Header"] [class*="actions"] {
+  margin-left: auto !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: flex-end !important;
+}
+
+@media (max-width: 720px) {
+  body > .app-header,
+  body > .top-header,
+  body > .account-header,
+  #root > .app-header,
+  #root > .top-header,
+  #root > .account-header,
+  .app-shell > .app-header,
+  .app-shell > .top-header,
+  .app-shell > .account-header,
+  .app-shell > .topbar,
+  .app-shell > [class*="header"],
+  .app-shell > [class*="Header"] {
+    top: 8px !important;
+    left: 8px !important;
+    right: 8px !important;
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    margin: 8px auto 12px !important;
+  }
+}
