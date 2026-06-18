@@ -25,6 +25,17 @@ const caseColorPalette = [
 
 const randomCaseColor = () => caseColorPalette[Math.floor(Math.random() * caseColorPalette.length)];
 
+const caseFolderIdFromName = (value = '') => {
+  const slug = String(value || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+
+  return slug ? `CASE-${slug}` : '';
+};
+
 export default function Cases({
   cases = [],
   onCreateCaseFolder,
@@ -77,7 +88,10 @@ export default function Cases({
   const submitCaseFolder = async (event) => {
     event.preventDefault();
     const cleanNumber = caseNumber.trim();
-    if (!cleanNumber || !onCreateCaseFolder) {
+    const cleanName = caseName.trim();
+    const folderId = cleanNumber || caseFolderIdFromName(cleanName);
+
+    if (!folderId || !onCreateCaseFolder) {
       return;
     }
 
@@ -85,12 +99,12 @@ export default function Cases({
     try {
       await onCreateCaseFolder({
         caseId: cleanNumber,
-        caseTitle: caseName.trim() || cleanNumber,
+        caseTitle: cleanName || cleanNumber,
         caseColor: randomCaseColor(),
       });
       setCaseName('');
       setCaseNumber('');
-      setSelectedCaseId(cleanNumber);
+      setSelectedCaseId(folderId);
     } finally {
       setIsCreatingCase(false);
     }
@@ -123,22 +137,21 @@ export default function Cases({
       <form className="card quick-case-form" onSubmit={submitCaseFolder}>
         <div>
           <h3>Add a case folder</h3>
-          <p className="meta">Add the case number once. CaseSync will attach matching emails when it scans your inbox.</p>
+          <p className="meta">Add a case number or the exact case name used in emails. CaseSync will attach matching messages when it scans your inbox.</p>
         </div>
         <input
           className="input"
           value={caseName}
           onChange={(event) => setCaseName(event.target.value)}
-          placeholder="Case name, e.g. Aguilar v. August Apparel"
+          placeholder="Case name from email, e.g. Aguilar v. August Apparel"
         />
         <input
           className="input"
           value={caseNumber}
           onChange={(event) => setCaseNumber(event.target.value)}
-          placeholder="Case number, e.g. 26STCV10888"
-          required
+          placeholder="Case number if known, e.g. 26STCV10888"
         />
-        <button className="btn-primary" type="submit" disabled={isCreatingCase || !caseNumber.trim()}>
+        <button className="btn-primary" type="submit" disabled={isCreatingCase || (!caseNumber.trim() && !caseName.trim())}>
           {isCreatingCase ? <span className="spinner" /> : <Plus size={14} />}
           {isCreatingCase ? 'Adding...' : 'Add case folder'}
         </button>

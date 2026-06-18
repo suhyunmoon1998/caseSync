@@ -15,7 +15,7 @@ import {
   updateCaseRecordStatus,
   deleteCaseRecord,
 } from './db.js';
-import { getAuthClient, fetchTriggerEmails, fetchCaseNumberEmails } from './gmail.js';
+import { getAuthClient, fetchTriggerEmails, fetchCaseFolderEmails } from './gmail.js';
 import { parseEmail } from './parser.js';
 import {
   findEventByCaseId,
@@ -145,6 +145,64 @@ const isValidCaseId = (value) => {
     return false;
   }
   return /^[A-Za-z0-9][A-Za-z0-9-]*$/.test(candidate);
+};
+
+const folderIdFromCaseTitle = (value = '') => {
+  const slug = String(value || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+  return slug ? `CASE-${slug}` : '';
+};
+
+const isValidCaseFolderId = (value) => (
+  isValidCaseId(value) || /^CASE-[A-Z0-9][A-Z0-9-]{3,}$/.test(String(value || '').trim())
+);
+
+const normalizeTextMatch = (value = '') => String(value || '')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
+
+const caseFolderSearchTerms = (folder = {}) => {
+  const terms = [];
+  const caseId = safeCaseId(folder.caseId);
+  const title = String(folder.caseTitle || '').trim();
+
+  if (caseId && !caseId.startsWith('CASE-')) {
+    terms.push(caseId);
+  }
+
+  if (title && title !== caseId) {
+    terms.push(title);
+    const compactTitle = title
+      .replace(/\b(vs?\.?|versus)\b/gi, ' v ')
+      .replace(/\b(incorporated)\b/gi, 'inc')
+      .replace(/\s+/g, ' ')
+      .trim();
+    terms.push(compactTitle);
+    for (const part of title.split(/\b(?:v\.?|vs\.?|versus)\b/i)) {
+      const clean = part.trim().replace(/[.,;:]+$/g, '');
+      if (clean.length >= 5) {
+        terms.push(clean);
+      }
+    }
+  }
+
+  return [...new Set(terms.map((item) => String(item || '').trim()).filter((item) => item.length >= 3))].slice(0, 8);
+};
+
+const emailMatchesCaseFolder = (email = {}, folder = {}) => {
+  const text = normalizeTextMatch(`${email.subject || ''}\n${email.from || ''}\n${email.snippet || ''}\n${email.body || ''}`);
+  const terms = caseFolderSearchTerms(folder);
+
+  return terms.some((term) => {
+    const normalized = normalizeTextMatch(term);
+    return normalized.length >= 3 && text.includes(normalized);
+  });
 };
 
 const toStatusString = (value) => (value === 'closed' || value === 'pending' || value === 'active' ? value : 'active');
@@ -455,7 +513,7 @@ export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
     const triggers = await getTriggers();
     const enabledTriggers = triggers.filter((trigger) => trigger.enabled !== false);
     const accounts = await getAllAccountsRaw();
-    const knownCaseFolders = (await getCaseRecordsFromDb()).filter((item) => isValidCaseId(item.caseId));
+    const knownCaseFolders = (await getCaseRecordsFromDb()).filter((item) => isValidCaseFolderId(item.caseId));
 
     for (const account of accounts) {
       if (!account?.tokens) {
@@ -655,7 +713,8 @@ export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
       }
 
       for (const folder of knownCaseFolders) {
-        const emails = await fetchCaseNumberEmails(auth, folder.caseId, caseFolderEmailLimit);
+        const searchTerms = caseFolderSearchTerms(folder);
+        const emails = await fetchCaseFolderEmails(auth, searchTerms, caseFolderEmailLimit);
         for (const email of emails) {
           const alreadySavedToCase = await getCaseEmailByMessageId(email.id);
           if (alreadySavedToCase?.caseId === folder.caseId) {
@@ -673,7 +732,8 @@ export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
               caseIdPatterns: [],
             });
             const parsedCaseId = safeCaseId(parsed.caseId);
-            const matchedCaseId = parsedCaseId === folder.caseId || `${email.subject}\n${email.body}`.includes(folder.caseId)
+            const matchedCaseId = parsedCaseId === folder.caseId
+              || emailMatchesCaseFolder(email, folder)
               ? folder.caseId
               : '';
 
@@ -705,8 +765,8 @@ export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
               classification: proofDeadline ? 'deadline-package' : 'case-folder-match',
               needsReview: !proofDeadline || caseConfidence < 80,
               sourceReason: proofDeadline
-                ? 'Matched by case folder number and detected a response deadline package.'
-                : 'Matched by case folder number. Review to confirm relevance.',
+                ? 'Matched by case folder number/name and detected a response deadline package.'
+                : 'Matched by case folder number/name. Review to confirm relevance.',
             });
 
             if (!proofDeadline) {
@@ -1039,9 +1099,10 @@ export const createCaseFolder = async ({
   caseTitle = '',
   caseColor = '',
 }) => {
-  const normalizedCaseId = safeCaseId(caseId);
-  if (!isValidCaseId(normalizedCaseId)) {
-    throw new Error('A valid case number is required');
+  const cleanTitle = String(caseTitle || '').trim();
+  const normalizedCaseId = safeCaseId(caseId) || folderIdFromCaseTitle(cleanTitle);
+  if (!isValidCaseFolderId(normalizedCaseId)) {
+    throw new Error('A valid case number or case name is required');
   }
 
   const stored = await getCaseRecordsFromDb();
@@ -1051,7 +1112,7 @@ export const createCaseFolder = async ({
     ...(existing || {}),
     id: existing?.id || normalizedCaseId,
     caseId: normalizedCaseId,
-    caseTitle: caseTitle || existing?.caseTitle || normalizedCaseId,
+    caseTitle: cleanTitle || existing?.caseTitle || normalizedCaseId,
     caseColor: caseColor || existing?.caseColor || '',
     status: existing?.status || 'active',
     triggerName: 'Manual case folder',
@@ -1077,8 +1138,8 @@ export const createCaseFolder = async ({
 
 export const approveCaseCalendarUpdate = async (caseId) => {
   const normalizedCaseId = safeCaseId(caseId);
-  if (!isValidCaseId(normalizedCaseId)) {
-    throw new Error('A valid case number is required');
+  if (!isValidCaseFolderId(normalizedCaseId)) {
+    throw new Error('A valid case number or case name is required');
   }
 
   const stored = await getCaseRecordsFromDb();
