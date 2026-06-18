@@ -8424,3 +8424,160 @@ td {
   border-radius: 999px !important;
   font-size: 12px !important;
 }
+
+/* Readability pass: lift tiny helper text without making the interface loud again. */
+.app-shell-clean .canvas-nav-item small,
+.app-shell-clean .canvas-alert-empty,
+.app-shell-clean .quick-case-form .meta,
+.app-shell-clean .control-panel .meta,
+.app-shell-clean .meta,
+.app-shell-clean label,
+.app-shell-clean .case-setting-toggle small,
+.app-shell-clean .calendar-range-summary {
+  font-size: 12px !important;
+  line-height: 1.42 !important;
+}
+
+.app-shell-clean .canvas-nav-item span,
+.app-shell-clean .quick-case-form h3,
+.app-shell-clean .control-panel select,
+.app-shell-clean .input,
+.app-shell-clean input,
+.app-shell-clean select,
+.app-shell-clean textarea {
+  font-size: 13px !important;
+}
+
+.app-shell-clean .input::placeholder,
+.app-shell-clean input::placeholder,
+.app-shell-clean textarea::placeholder {
+  font-size: 12px !important;
+  color: #64748b !important;
+  opacity: 0.9 !important;
+}
+
+.app-shell-clean .eyebrow,
+.app-shell-clean .case-folder-kicker,
+.app-shell-clean .mini-link,
+.app-shell-clean .canvas-alerts-head span {
+  font-size: 11px !important;
+}
+
+.app-shell-clean .hint-chip,
+.app-shell-clean .badge,
+.app-shell-clean .tag,
+.app-shell-clean .account-chip,
+.app-shell-clean .notification-list-status {
+  font-size: 11px !important;
+}
+
+/* Case detail readability: give calendar controls enough room and raise small text. */
+.app-shell-clean .case-detail-grid {
+  grid-template-columns: minmax(420px, 0.82fr) minmax(560px, 1.55fr) !important;
+  gap: 20px !important;
+  align-items: start !important;
+}
+
+.app-shell-clean .case-detail-calendar-panel,
+.app-shell-clean .case-detail-email-panel {
+  min-width: 0 !important;
+}
+
+.app-shell-clean .case-detail-panel-head h3 {
+  font-size: 18px !important;
+  line-height: 1.18 !important;
+}
+
+.app-shell-clean .case-detail-deadline-large {
+  padding: 22px !important;
+}
+
+.app-shell-clean .case-detail-deadline-large span {
+  font-size: 12px !important;
+}
+
+.app-shell-clean .case-detail-deadline-large strong {
+  color: #ffffff !important;
+  font-size: clamp(26px, 2.7vw, 40px) !important;
+  line-height: 1 !important;
+}
+
+.app-shell-clean .case-detail-deadline-large em,
+.app-shell-clean .case-detail-deadline-large small {
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+}
+
+.app-shell-clean .case-summary-item span,
+.app-shell-clean .case-summary-item small,
+.app-shell-clean .case-calendar-approval small,
+.app-shell-clean .case-setting-toggle small {
+  font-size: 12px !important;
+  line-height: 1.38 !important;
+}
+
+.app-shell-clean .case-summary-item strong,
+.app-shell-clean .case-calendar-approval strong,
+.app-shell-clean .case-setting-toggle strong {
+  font-size: 14px !important;
+  line-height: 1.25 !important;
+}
+
+.app-shell-clean .case-calendar-controls {
+  padding: 18px !important;
+  gap: 14px !important;
+  overflow: visible !important;
+}
+
+.app-shell-clean .case-calendar-approval {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 12px !important;
+  padding: 16px !important;
+  border-radius: 18px !important;
+  min-width: 0 !important;
+}
+
+.app-shell-clean .case-calendar-approval > div {
+  min-width: 0 !important;
+}
+
+.app-shell-clean .case-calendar-approval .btn-primary,
+.app-shell-clean .case-calendar-approval .btn-ghost {
+  width: 100% !important;
+  justify-content: center !important;
+  min-height: 38px !important;
+  padding: 9px 12px !important;
+  font-size: 12px !important;
+  white-space: normal !important;
+}
+
+.app-shell-clean .case-detail-email-list .case-email-item {
+  padding: 18px !important;
+}
+
+.app-shell-clean .case-detail-email-list .case-email-subject {
+  font-size: 16px !important;
+  line-height: 1.22 !important;
+}
+
+.app-shell-clean .case-detail-email-list .case-email-top small {
+  font-size: 12px !important;
+}
+
+.app-shell-clean .case-detail-email-preview {
+  font-size: 14px !important;
+  line-height: 1.55 !important;
+}
+
+.app-shell-clean .case-email-badges .badge,
+.app-shell-clean .case-email-actions .btn-ghost,
+.app-shell-clean .case-email-actions .btn-primary {
+  font-size: 12px !important;
+}
+
+@media (max-width: 1180px) {
+  .app-shell-clean .case-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
