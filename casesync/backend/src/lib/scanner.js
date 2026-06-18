@@ -219,8 +219,6 @@ const caseFolderSearchTerms = (folder = {}) => {
       .map((word) => word.trim())
       .filter((word) => word.length >= 3 && !titleAliasStopwords.has(word.toLowerCase()));
 
-    words.slice(0, 4).forEach(addTerm);
-
     for (let index = 0; index < Math.min(words.length - 1, 4); index += 1) {
       addTerm(`${words[index]} ${words[index + 1]}`);
     }
@@ -948,9 +946,11 @@ export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
                   deadlines: mergeCaseDeadlines(folder.deadlines || [], candidateDeadlines),
                   caseConfidence,
                   isEstimated: shouldTreatAsEstimated(matchedCaseId, caseConfidence, parsed.estimated),
-                  proofServiceDate: parsed.proofServiceDate || folder.proofServiceDate || '',
-                  proofServiceMethod: parsed.proofServiceMethod || folder.proofServiceMethod || '',
-                  discoverySets: normalizeDiscoverySets(parsed.discoverySets || folder.discoverySets || []),
+                  proofServiceDate: folder.proofServiceDate || '',
+                  proofServiceMethod: folder.proofServiceMethod || '',
+                  discoverySets: normalizeDiscoverySets(folder.discoverySets || []),
+                  responseDeadlineDate: folder.responseDeadlineDate || '',
+                  responsePackage: folder.responsePackage || null,
                   sourceAccount: account.email,
                   sourceCalendarId: folder.sourceCalendarId || defaultCalendarId,
                   sourceEventSummary: folder.sourceEventSummary || '',
