@@ -309,7 +309,7 @@ const scanCaseFilterKeys = (value = '') => {
   if (!raw) return keys;
 
   keys.add(raw.toLowerCase());
-  const normalizedCase = normalizeCaseNumber(raw);
+  const normalizedCase = safeCaseId(raw).replace(/[^a-z0-9]/gi, '');
   if (normalizedCase) keys.add(normalizedCase.toLowerCase());
   const normalizedText = normalizeTextMatch(raw);
   if (normalizedText) keys.add(normalizedText);
