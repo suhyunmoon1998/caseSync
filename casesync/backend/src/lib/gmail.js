@@ -285,6 +285,28 @@ const extractAttachments = async (auth, messageId, payload) => {
   };
 };
 
+const attachmentMetadataOnly = (payload) => ({
+  attachments: collectAttachmentParts(payload).map((part) => ({
+    filename: part.filename,
+    mimeType: part.mimeType,
+    size: part.size,
+    kind: attachmentKind(part.filename, part.mimeType),
+    extracted: false,
+    textLength: 0,
+    error: 'Attachment text extraction skipped until legal scheduling signal is present',
+  })),
+  attachmentText: '',
+});
+
+const shouldExtractAttachmentText = ({ subject = '', snippet = '', body = '', from = '' }) => {
+  if (process.env.EXTRACT_ALL_ATTACHMENTS === 'true') {
+    return true;
+  }
+
+  return /\b(court|e-?service|electronic service|proof of service|date of service|served|service of|discovery|written discovery|interrogator(?:y|ies)|requests?\s+for\s+(?:production|admissions?)|rfps?|rfas?|notice|hearing|case management conference|cmc|minute order|clerk'?s certificate|summons|complaint|trial|mediation|arbitration|deadline|due)\b/i
+    .test(`${subject}\n${snippet}\n${body}\n${from}`);
+};
+
 const escapeQueryTerm = (value = '') => {
   return String(value).replace(/[\"']/g, '\\$&');
 };
@@ -348,15 +370,20 @@ export const fetchTriggerEmails = async (auth, trigger, maxResults = 50) => {
     const headers = msg.payload?.headers || [];
     const getHeader = (name) => headers.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
     const body = extractText(msg.payload);
-    const attachmentResult = await extractAttachments(auth, messageId, msg.payload);
+    const subject = getHeader('subject') || '(No Subject)';
+    const from = getHeader('from') || '(No From)';
+    const snippet = msg.snippet || '';
+    const attachmentResult = shouldExtractAttachmentText({ subject, snippet, body, from })
+      ? await extractAttachments(auth, messageId, msg.payload)
+      : attachmentMetadataOnly(msg.payload);
 
     resolved.push({
       id: messageId,
       threadId: msg.threadId,
-      subject: getHeader('subject') || '(No Subject)',
-      from: getHeader('from') || '(No From)',
+      subject,
+      from,
       date: getHeader('date') || new Date().toISOString(),
-      snippet: msg.snippet || '',
+      snippet,
       body: `${body}${attachmentResult.attachmentText}`.trim(),
       bodyText: body,
       attachmentText: attachmentResult.attachmentText.trim(),
@@ -395,15 +422,20 @@ export const fetchCaseNumberEmails = async (auth, caseId, maxResults = 100) => {
     const headers = msg.payload?.headers || [];
     const getHeader = (name) => headers.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
     const body = extractText(msg.payload);
-    const attachmentResult = await extractAttachments(auth, messageId, msg.payload);
+    const subject = getHeader('subject') || '(No Subject)';
+    const from = getHeader('from') || '(No From)';
+    const snippet = msg.snippet || '';
+    const attachmentResult = shouldExtractAttachmentText({ subject, snippet, body, from })
+      ? await extractAttachments(auth, messageId, msg.payload)
+      : attachmentMetadataOnly(msg.payload);
 
     resolved.push({
       id: messageId,
       threadId: msg.threadId,
-      subject: getHeader('subject') || '(No Subject)',
-      from: getHeader('from') || '(No From)',
+      subject,
+      from,
       date: getHeader('date') || new Date().toISOString(),
-      snippet: msg.snippet || '',
+      snippet,
       body: `${body}${attachmentResult.attachmentText}`.trim(),
       bodyText: body,
       attachmentText: attachmentResult.attachmentText.trim(),
@@ -452,15 +484,20 @@ export const fetchCaseFolderEmails = async (auth, searchTerms = [], maxResults =
     const headers = msg.payload?.headers || [];
     const getHeader = (name) => headers.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
     const body = extractText(msg.payload);
-    const attachmentResult = await extractAttachments(auth, messageId, msg.payload);
+    const subject = getHeader('subject') || '(No Subject)';
+    const from = getHeader('from') || '(No From)';
+    const snippet = msg.snippet || '';
+    const attachmentResult = shouldExtractAttachmentText({ subject, snippet, body, from })
+      ? await extractAttachments(auth, messageId, msg.payload)
+      : attachmentMetadataOnly(msg.payload);
 
     resolved.push({
       id: messageId,
       threadId: msg.threadId,
-      subject: getHeader('subject') || '(No Subject)',
-      from: getHeader('from') || '(No From)',
+      subject,
+      from,
       date: getHeader('date') || new Date().toISOString(),
-      snippet: msg.snippet || '',
+      snippet,
       body: `${body}${attachmentResult.attachmentText}`.trim(),
       bodyText: body,
       attachmentText: attachmentResult.attachmentText.trim(),
