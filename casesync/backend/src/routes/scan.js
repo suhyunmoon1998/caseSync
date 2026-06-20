@@ -29,7 +29,7 @@ router.post('/run', async (req, res) => {
   try {
     const result = await runAutoScan('manual', {
       maxEmails: boundedLimit(req.body?.maxEmails || req.query.maxEmails, undefined, 1000),
-      caseFolderMaxEmails: boundedLimit(req.body?.caseFolderMaxEmails || req.query.caseFolderMaxEmails, undefined, 8),
+      caseFolderMaxEmails: boundedLimit(req.body?.caseFolderMaxEmails || req.query.caseFolderMaxEmails, undefined, 250),
       caseIds: parseCaseIds(req.body?.caseIds || req.query.caseIds),
     });
     res.json({ success: true, result });

@@ -1349,6 +1349,50 @@ const emailPreview = (value = '', limit = 1800) => String(value || '')
   .trim()
   .slice(0, limit);
 
+const normalizeEmailSubject = (value = '') => String(value || '')
+  .toLowerCase()
+  .replace(/^\s*(re|fw|fwd)\s*:\s*/i, '')
+  .replace(/\s+/g, ' ')
+  .trim();
+
+const normalizeEmailBodySignature = (value = '') => String(value || '')
+  .toLowerCase()
+  .replace(/\s+/g, ' ')
+  .replace(/-- privileged and confidential[\s\S]*$/i, '')
+  .trim()
+  .slice(0, 700);
+
+const emailDuplicateSignature = (record = {}) => {
+  const subject = normalizeEmailSubject(record.subject);
+  const body = normalizeEmailBodySignature(record.bodyPreview || record.body || record.snippet);
+  if (!subject || !body) {
+    return '';
+  }
+  return `${subject}|${body}`;
+};
+
+const emailClassificationRank = (value = '') => {
+  const key = String(value || '').trim();
+  if (key === 'deadline-package') return 5;
+  if (key === 'attachment-ai-review') return 4;
+  if (key === 'review_needed') return 3;
+  if (key === 'case-signal') return 2;
+  if (key === 'case-folder-match') return 1;
+  return 0;
+};
+
+const shouldPreferIncomingEmail = (incoming = {}, existing = {}) => {
+  const incomingRank = emailClassificationRank(incoming.classification);
+  const existingRank = emailClassificationRank(existing.classification);
+  if (incomingRank !== existingRank) {
+    return incomingRank > existingRank;
+  }
+  if (Boolean(incoming.needsReview) !== Boolean(existing.needsReview)) {
+    return !incoming.needsReview;
+  }
+  return String(incoming.receivedAt || '').localeCompare(String(existing.receivedAt || '')) > 0;
+};
+
 export const upsertCaseEmailRecord = async (record) => {
   const payload = {
     messageId: String(record.messageId || record.id || '').trim(),
@@ -1374,6 +1418,46 @@ export const upsertCaseEmailRecord = async (record) => {
   }
 
   if (storageMode === 'postgres') {
+    const incomingSignature = emailDuplicateSignature(payload);
+    if (incomingSignature && !['IGNORED-UNRELATED', 'IGNORED_DUPLICATE'].includes(payload.caseId)) {
+      const { rows: candidateRows } = await getPool().query(
+        `select * from case_emails
+         where case_id = $1
+           and message_id <> $2
+           and classification not in ('ignored', 'not_relevant')
+           and (
+             nullif(thread_id, '') is not null and thread_id = $3
+             or lower(regexp_replace(subject, '^(re|fw|fwd):\\s*', '', 'i')) = lower(regexp_replace($4, '^(re|fw|fwd):\\s*', '', 'i'))
+           )
+         order by needs_review asc, received_at desc nulls last, updated_at desc
+         limit 20`,
+        [payload.caseId, payload.messageId, payload.threadId, payload.subject],
+      );
+      const duplicate = candidateRows
+        .map(normalizeCaseEmailRow)
+        .find((item) => emailDuplicateSignature(item) === incomingSignature);
+
+      if (duplicate) {
+        if (shouldPreferIncomingEmail(payload, duplicate)) {
+          await getPool().query(
+            `update case_emails set
+              case_id = 'IGNORED-UNRELATED',
+              classification = 'ignored',
+              needs_review = false,
+              source_reason = 'Duplicate related email replaced by a stronger CaseSync match.',
+              updated_at = now()
+             where message_id = $1`,
+            [duplicate.messageId],
+          );
+        } else {
+          payload.caseId = 'IGNORED-UNRELATED';
+          payload.classification = 'ignored';
+          payload.needsReview = false;
+          payload.sourceReason = `Duplicate related email hidden; kept ${duplicate.messageId}.`;
+        }
+      }
+    }
+
     const { rows } = await getPool().query(
       `insert into case_emails (
         message_id, thread_id, case_id, account_email, from_email, subject, snippet,
@@ -1425,6 +1509,39 @@ export const upsertCaseEmailRecord = async (record) => {
   await db.read();
   db.data = sanitizeData(db.data || {});
   const now = new Date().toISOString();
+  const incomingSignature = emailDuplicateSignature(payload);
+  if (incomingSignature && !['IGNORED-UNRELATED', 'IGNORED_DUPLICATE'].includes(payload.caseId)) {
+    const duplicateIndex = db.data.emails.findIndex((item) => (
+      item.caseId === payload.caseId
+      && item.messageId !== payload.messageId
+      && item.classification !== 'ignored'
+      && item.classification !== 'not_relevant'
+      && (
+        (item.threadId && item.threadId === payload.threadId)
+        || normalizeEmailSubject(item.subject) === normalizeEmailSubject(payload.subject)
+      )
+      && emailDuplicateSignature(item) === incomingSignature
+    ));
+
+    if (duplicateIndex !== -1) {
+      const duplicate = db.data.emails[duplicateIndex];
+      if (shouldPreferIncomingEmail(payload, duplicate)) {
+        db.data.emails[duplicateIndex] = {
+          ...duplicate,
+          caseId: 'IGNORED-UNRELATED',
+          classification: 'ignored',
+          needsReview: false,
+          sourceReason: 'Duplicate related email replaced by a stronger CaseSync match.',
+          updatedAt: now,
+        };
+      } else {
+        payload.caseId = 'IGNORED-UNRELATED';
+        payload.classification = 'ignored';
+        payload.needsReview = false;
+        payload.sourceReason = `Duplicate related email hidden; kept ${duplicate.messageId}.`;
+      }
+    }
+  }
   const index = db.data.emails.findIndex((item) => item.messageId === payload.messageId);
   const next = {
     ...payload,
