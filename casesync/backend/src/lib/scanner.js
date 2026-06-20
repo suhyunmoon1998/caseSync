@@ -719,6 +719,7 @@ export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
     const enabledTriggers = triggers.filter((trigger) => trigger.enabled !== false);
     const accounts = await getAllAccountsRaw();
     const requestedCaseFilters = normalizeScanCaseFilters(options.caseIds);
+    const includeTriggers = options.caseFolderOnly === true ? false : options.includeTriggers !== false;
     const knownCaseFolders = (await getCaseRecordsFromDb())
       .filter((item) => isValidCaseFolderId(item.caseId))
       .filter((item) => caseMatchesScanFilter(item, requestedCaseFilters));
@@ -734,7 +735,7 @@ export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
         redirectUri: process.env.GOOGLE_REDIRECT_URI,
       });
 
-      if (!requestedCaseFilters.size) for (const trigger of enabledTriggers) {
+      if (includeTriggers && !requestedCaseFilters.size) for (const trigger of enabledTriggers) {
         const calendarId = trigger.calendarId || defaultCalendarId;
         const emails = await fetchTriggerEmails(auth, trigger, triggerEmailLimit);
 

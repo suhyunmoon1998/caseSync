@@ -25,12 +25,31 @@ const parseCaseIds = (value) => {
     .filter(Boolean);
 };
 
+const parseBoolean = (value, fallback = undefined) => {
+  if (value === undefined || value === null || value === '') {
+    return fallback;
+  }
+  if (value === true || value === false) {
+    return value;
+  }
+  const normalized = String(value).trim().toLowerCase();
+  if (['true', '1', 'yes', 'y'].includes(normalized)) {
+    return true;
+  }
+  if (['false', '0', 'no', 'n'].includes(normalized)) {
+    return false;
+  }
+  return fallback;
+};
+
 router.post('/run', async (req, res) => {
   try {
     const result = await runAutoScan('manual', {
       maxEmails: boundedLimit(req.body?.maxEmails || req.query.maxEmails, undefined, 1000),
       caseFolderMaxEmails: boundedLimit(req.body?.caseFolderMaxEmails || req.query.caseFolderMaxEmails, undefined, 250),
       caseIds: parseCaseIds(req.body?.caseIds || req.query.caseIds),
+      caseFolderOnly: parseBoolean(req.body?.caseFolderOnly ?? req.query.caseFolderOnly, false),
+      includeTriggers: parseBoolean(req.body?.includeTriggers ?? req.query.includeTriggers, true),
     });
     res.json({ success: true, result });
   } catch (error) {
