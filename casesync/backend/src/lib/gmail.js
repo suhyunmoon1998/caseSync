@@ -2,7 +2,22 @@ import { google } from 'googleapis';
 import mammoth from 'mammoth';
 import { PDFParse } from 'pdf-parse';
 
-const attachmentTextMaxChars = Number(process.env.ATTACHMENT_TEXT_MAX_CHARS || 60000);
+const attachmentTextMaxChars = Number(process.env.ATTACHMENT_TEXT_MAX_CHARS || 16000);
+const maxAttachmentsPerEmail = Number(process.env.MAX_ATTACHMENTS_PER_EMAIL || 3);
+const maxAttachmentBytes = Number(process.env.MAX_ATTACHMENT_BYTES || 8 * 1024 * 1024);
+const attachmentTimeoutMs = Number(process.env.ATTACHMENT_EXTRACT_TIMEOUT_MS || 15000);
+
+const withTimeout = async (promise, ms, label = 'Operation') => {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
 
 const decodeHtmlEntities = (value = '') => {
   return value
@@ -199,7 +214,7 @@ const extractAttachments = async (auth, messageId, payload) => {
   const attachments = [];
   const textBlocks = [];
 
-  for (const part of parts) {
+  for (const part of parts.slice(0, Math.max(0, maxAttachmentsPerEmail))) {
     const kind = attachmentKind(part.filename, part.mimeType);
     const item = {
       filename: part.filename,
@@ -216,9 +231,23 @@ const extractAttachments = async (auth, messageId, payload) => {
       continue;
     }
 
+    if (Number(part.size || 0) > maxAttachmentBytes) {
+      item.error = `Attachment skipped because it is larger than ${maxAttachmentBytes} bytes`;
+      attachments.push(item);
+      continue;
+    }
+
     try {
-      const buffer = await attachmentDataBuffer(auth, messageId, part);
-      const rawText = await extractAttachmentText(buffer, kind);
+      const buffer = await withTimeout(
+        attachmentDataBuffer(auth, messageId, part),
+        attachmentTimeoutMs,
+        `Attachment download for ${part.filename}`,
+      );
+      const rawText = await withTimeout(
+        extractAttachmentText(buffer, kind),
+        attachmentTimeoutMs,
+        `Attachment text extraction for ${part.filename}`,
+      );
       const text = String(rawText || '')
         .replace(/\r/g, '')
         .replace(/\u200b/g, '')
@@ -236,6 +265,18 @@ const extractAttachments = async (auth, messageId, payload) => {
     }
 
     attachments.push(item);
+  }
+
+  for (const part of parts.slice(Math.max(0, maxAttachmentsPerEmail))) {
+    attachments.push({
+      filename: part.filename,
+      mimeType: part.mimeType,
+      size: part.size,
+      kind: attachmentKind(part.filename, part.mimeType),
+      extracted: false,
+      textLength: 0,
+      error: `Attachment skipped after first ${maxAttachmentsPerEmail} attachments`,
+    });
   }
 
   return {
