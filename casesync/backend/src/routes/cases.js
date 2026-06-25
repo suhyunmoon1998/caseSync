@@ -13,6 +13,7 @@ import {
   getCaseEmailRecords,
   updateCaseEmailRecord,
   updateCaseRecordSettings,
+  mergeCaseRecordInto,
 } from '../lib/db.js';
 
 const router = express.Router();
@@ -186,6 +187,24 @@ router.patch('/:caseId/settings', async (req, res) => {
   } catch (error) {
     console.error('Update case settings failed', error);
     res.status(500).json({ error: 'Failed to update case settings' });
+  }
+});
+
+router.post('/:caseId/merge', async (req, res) => {
+  try {
+    const sourceCaseId = decodeURIComponent(req.params.caseId || '').trim();
+    const targetCaseId = String(req.body?.targetCaseId || '').trim();
+    if (!sourceCaseId || !targetCaseId || sourceCaseId === targetCaseId) {
+      return res.status(400).json({ error: 'A different targetCaseId is required' });
+    }
+    const result = await mergeCaseRecordInto(sourceCaseId, targetCaseId);
+    if (!result) {
+      return res.status(404).json({ error: 'Source or target case not found' });
+    }
+    res.json({ success: true, case: result });
+  } catch (error) {
+    console.error('Merge case failed', error);
+    res.status(500).json({ error: 'Failed to merge case' });
   }
 });
 

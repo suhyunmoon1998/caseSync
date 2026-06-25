@@ -1317,6 +1317,75 @@ export const updateCaseRecordSettings = async (caseId, settings = {}) => {
   return db.data.cases[index];
 };
 
+export const mergeCaseRecordInto = async (sourceCaseId, targetCaseId) => {
+  const sourceId = String(sourceCaseId || '').trim();
+  const targetId = String(targetCaseId || '').trim();
+  if (!sourceId || !targetId || sourceId === targetId) {
+    return null;
+  }
+
+  if (storageMode === 'postgres') {
+    const { rows } = await getPool().query(
+      'select * from cases where case_id = any($1::text[])',
+      [[sourceId, targetId]],
+    );
+    const records = rows.map(normalizeCaseRow);
+    const source = records.find((item) => item.caseId === sourceId);
+    const target = records.find((item) => item.caseId === targetId);
+    if (!source || !target) {
+      return null;
+    }
+
+    const merged = mergeCaseRecords(source, target);
+    const record = await upsertCaseRecord({
+      ...merged,
+      id: target.id || target.caseId,
+      caseId: target.caseId,
+      caseTitle: target.caseTitle || merged.caseTitle || target.caseId,
+      caseColor: target.caseColor || merged.caseColor || '',
+      status: target.status || merged.status || 'active',
+      calendarAutoEnabled: target.calendarAutoEnabled,
+      reviewBeforeCalendarUpdate: target.reviewBeforeCalendarUpdate,
+      calendarAction: `Merged duplicate case folder ${sourceId} into ${targetId}`,
+    });
+    await getPool().query(
+      'update case_emails set case_id = $1, updated_at = now() where case_id = $2',
+      [targetId, sourceId],
+    );
+    await getPool().query('delete from cases where case_id = $1', [sourceId]);
+    return record;
+  }
+
+  await db.read();
+  db.data = sanitizeData(db.data || {});
+  const source = db.data.cases.find((item) => item.caseId === sourceId);
+  const target = db.data.cases.find((item) => item.caseId === targetId);
+  if (!source || !target) {
+    return null;
+  }
+
+  const merged = {
+    ...mergeCaseRecords(source, target),
+    id: target.id || target.caseId,
+    caseId: target.caseId,
+    caseTitle: target.caseTitle || source.caseTitle || target.caseId,
+    caseColor: target.caseColor || source.caseColor || '',
+    status: target.status || source.status || 'active',
+    calendarAutoEnabled: target.calendarAutoEnabled,
+    reviewBeforeCalendarUpdate: target.reviewBeforeCalendarUpdate,
+    calendarAction: `Merged duplicate case folder ${sourceId} into ${targetId}`,
+    updatedAt: new Date().toISOString(),
+  };
+  db.data.cases = db.data.cases
+    .filter((item) => item.caseId !== sourceId && item.caseId !== targetId);
+  db.data.cases.unshift(merged);
+  db.data.emails = db.data.emails.map((item) => (
+    item.caseId === sourceId ? { ...item, caseId: targetId, updatedAt: new Date().toISOString() } : item
+  ));
+  await write();
+  return merged;
+};
+
 export const deleteCaseRecord = async (caseId) => {
   if (storageMode === 'postgres') {
     const result = await getPool().query('delete from cases where case_id = $1', [caseId]);
