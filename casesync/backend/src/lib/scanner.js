@@ -729,11 +729,12 @@ export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
         continue;
       }
 
-      const auth = getAuthClient(account.tokens, {
-        clientId: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        redirectUri: process.env.GOOGLE_REDIRECT_URI,
-      });
+      try {
+        const auth = getAuthClient(account.tokens, {
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          redirectUri: process.env.GOOGLE_REDIRECT_URI,
+        });
 
       if (includeTriggers && !requestedCaseFilters.size) for (const trigger of enabledTriggers) {
         const calendarId = trigger.calendarId || defaultCalendarId;
@@ -1087,6 +1088,10 @@ export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
           ...(auth.credentials || {}),
         },
       });
+      } catch (error) {
+        const accountLabel = account.email || account.profile?.email || 'Google account';
+        summary.errors.push(`${accountLabel}: ${error.message || 'account scan error'}`);
+      }
     }
 
     const finishedAt = new Date().toISOString();
