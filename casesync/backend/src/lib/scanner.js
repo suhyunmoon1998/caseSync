@@ -1543,12 +1543,20 @@ export const repairCaseFromStoredEmails = async (caseId) => {
   const emails = await getCaseEmailRecords(normalizedCaseId, 100);
   const discoveryEmail = emails.find((email) => {
     const raw = email.raw || {};
+    const sourceEmail = {
+      subject: email.subject || raw.subject || '',
+      snippet: email.snippet || raw.snippet || '',
+      body: email.bodyPreview || '',
+      attachments: raw.attachments || [],
+    };
+    const caseNumberConfirmed = caseIdsMatch(raw.caseId, normalizedCaseId)
+      || emailContainsCaseId(sourceEmail, normalizedCaseId);
+    if (!caseNumberConfirmed) {
+      return false;
+    }
+
     return hasReliableDiscoveryDeadlineSource(
-      {
-        subject: email.subject,
-        snippet: email.snippet,
-        body: email.bodyPreview,
-      },
+      sourceEmail,
       {
         proofServiceDate: raw.proofServiceDate,
         discoverySets: raw.discoverySets || [],
@@ -1602,7 +1610,11 @@ export const repairCaseFromStoredEmails = async (caseId) => {
     };
   }
 
-  const deadlines = [responsePackage.responseDeadline];
+  const cleanedDeadlines = (target.deadlines || []).filter((deadline) => (
+    !/^response due:\s*proof deadline/i.test(String(deadline?.action || ''))
+    && !deadlineMentionsDifferentCase(deadline, target, stored)
+  ));
+  const deadlines = mergeCaseDeadlines(cleanedDeadlines, [responsePackage.responseDeadline]);
 
   const record = await upsertCaseRecord({
     ...target,
