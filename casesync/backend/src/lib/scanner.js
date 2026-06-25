@@ -170,6 +170,16 @@ const normalizeTextMatch = (value = '') => String(value || '')
   .replace(/\s+/g, ' ')
   .trim();
 
+const normalizeCaseKey = (value = '') => safeCaseId(value)
+  .replace(/[^a-z0-9]/gi, '')
+  .toLowerCase();
+
+const caseIdsMatch = (left = '', right = '') => {
+  const leftKey = normalizeCaseKey(left);
+  const rightKey = normalizeCaseKey(right);
+  return Boolean(leftKey && rightKey && leftKey === rightKey);
+};
+
 const caseFolderSearchTerms = (folder = {}) => {
   const terms = [];
   const addTerm = (value = '') => {
@@ -358,6 +368,30 @@ const emailMatchesCaseFolder = (email = {}, folder = {}) => {
   return terms.some((term) => {
     const normalized = normalizeTextMatch(term);
     return normalized.length >= 3 && text.includes(normalized);
+  });
+};
+
+const emailContainsCaseId = (email = {}, caseId = '') => {
+  const rawCaseId = safeCaseId(caseId);
+  if (!rawCaseId || rawCaseId.startsWith('CASE-')) {
+    return false;
+  }
+
+  const attachmentText = Array.isArray(email.attachments)
+    ? email.attachments
+      .map((attachment) => `${attachment?.filename || ''}\n${attachment?.text || ''}\n${attachment?.extractedText || ''}\n${attachment?.preview || ''}`)
+      .join('\n')
+    : '';
+  const text = normalizeTextMatch(`${email.subject || ''}\n${email.from || ''}\n${email.snippet || ''}\n${email.body || ''}\n${attachmentText}`);
+  const variants = [
+    rawCaseId,
+    rawCaseId.replace(/^([A-Z0-9]*?[A-Z]{2,})(\d{3,})$/i, '$1 $2'),
+    rawCaseId.replace(/^([A-Z0-9]*?[A-Z]{2,})(\d{3,})$/i, '$1-$2'),
+  ];
+
+  return variants.some((variant) => {
+    const normalized = normalizeTextMatch(variant);
+    return normalized.length >= 5 && text.includes(normalized);
   });
 };
 
@@ -952,10 +986,10 @@ export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
               caseIdPatterns: [],
             });
             const parsedCaseId = safeCaseId(parsed.caseId);
-            const matchedCaseId = parsedCaseId === folder.caseId
-              || emailMatchesCaseFolder(email, folder)
-              ? folder.caseId
-              : '';
+            const caseNumberConfirmed = caseIdsMatch(parsedCaseId, folder.caseId) || emailContainsCaseId(email, folder.caseId);
+            const nameOnlyMatched = !caseNumberConfirmed && emailMatchesCaseFolder(email, folder);
+            const parsedDifferentCase = parsedCaseId && isValidCaseId(parsedCaseId) && !caseIdsMatch(parsedCaseId, folder.caseId);
+            const matchedCaseId = caseNumberConfirmed || (nameOnlyMatched && !parsedDifferentCase) ? folder.caseId : '';
 
             if (!matchedCaseId) {
               continue;
@@ -970,7 +1004,7 @@ export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
               caseId: matchedCaseId,
               caseTitle: folder.caseTitle || matchedCaseId,
             });
-            if (responsePackage && !hasReliableDiscoveryDeadlineSource(email, parsed)) {
+            if (responsePackage && (!caseNumberConfirmed || !hasReliableDiscoveryDeadlineSource(email, parsed))) {
               responsePackage = null;
             }
             const proofDeadline = responsePackage?.responseDeadline || null;
@@ -978,7 +1012,7 @@ export const runAutoScan = async (triggerSource = 'auto', options = {}) => {
               deadlines.push(proofDeadline);
             }
             const extractedAttachmentText = hasExtractedAttachmentText(email);
-            const candidateDeadlines = calendarCandidateDeadlines(parsed);
+            const candidateDeadlines = caseNumberConfirmed ? calendarCandidateDeadlines(parsed) : [];
 
             await storeCaseEmail({
               email,
