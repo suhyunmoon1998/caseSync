@@ -1652,7 +1652,16 @@ export const repairCaseFromStoredEmails = async (caseId) => {
 
 export const getCaseRecords = async (_targetAccountEmail = null) => {
   const stored = await getCaseRecordsFromDb();
-  return stored.map(toDeadlineUi);
+  return Promise.all(stored.map(async (item) => {
+    const emails = await getCaseEmailRecords(item.caseId, 100);
+    const reviewEmails = emails.filter((email) => email.needsReview);
+    const relatedEmails = emails.filter((email) => !email.needsReview);
+    return {
+      ...toDeadlineUi(item),
+      relatedEmails,
+      reviewEmails,
+    };
+  }));
 };
 
 export const updateCaseById = async (caseId, status) => {
