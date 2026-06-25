@@ -1303,7 +1303,11 @@ export const createManualCase = async ({
   });
 
   const targetCalendarId = calendarId || defaultCalendarId;
-  const deadlines = [responsePackage.responseDeadline];
+  const cleanedDeadlines = (target.deadlines || []).filter((deadline) => (
+    !/^response due:\s*proof deadline/i.test(String(deadline?.action || ''))
+    && !deadlineMentionsDifferentCase(deadline, target, stored)
+  ));
+  const deadlines = mergeCaseDeadlines(cleanedDeadlines, [responsePackage.responseDeadline]);
   const payload = {
     caseId: normalizedCaseId,
     caseTitle: caseTitle || normalizedCaseId,
